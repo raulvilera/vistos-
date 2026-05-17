@@ -1,34 +1,2026 @@
-const CACHE_NAME = 'atividades-prv-v2';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'
-];
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0f1f3d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AtividadesPRV">
+<title>Controle de Atividades — Prof. Raul Vilera</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS).catch(() => {});
-    })
-  );
-  self.skipWaiting();
+<style>
+:root {
+  --bg:       #060b18;
+  --surface:  #0c1426;
+  --card:     #101e35;
+  --card2:    #132040;
+  --border:   #1c3058;
+  --border2:  #244070;
+  --glow1:    #00d4ff;
+  --glow2:    #7c3aed;
+  --glow3:    #10b981;
+  --warn:     #f59e0b;
+  --danger:   #ef4444;
+  --text:     #e8f0fe;
+  --muted:    #5a7aab;
+  --fez:      #10b981;
+  --naofez:   #ef4444;
+  --atencao:  #f59e0b;
+  --font:     'Space Grotesk', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+  --radius:   14px;
+  --radius-sm: 8px;
+  --shadow:   0 8px 32px rgba(0,0,0,0.5);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before {
+  content:'';
+  position:fixed;inset:0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:0; opacity:0.6;
+}
+
+/* ── GRID BG ── */
+body::after {
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none; z-index:0;
+}
+
+/* ── HEADER ── */
+header {
+  position: sticky; top: 0; z-index: 200;
+  padding: calc(var(--safe-top) + 12px) 20px 12px;
+  background: rgba(6,11,24,0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.brand { display:flex; align-items:center; gap:12px; }
+.brand-icon {
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,var(--glow1),var(--glow2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  box-shadow:0 0 20px rgba(0,212,255,0.3);
+  flex-shrink:0;
+}
+.brand-text h1 {
+  font-size:15px;font-weight:700;letter-spacing:-.3px;
+  background:linear-gradient(90deg,var(--glow1),var(--glow2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.brand-text p { font-size:11px;color:var(--muted);margin-top:1px; }
+
+.header-btns { display:flex;gap:8px;align-items:center; }
+.btn {
+  padding:8px 14px;border-radius:var(--radius-sm);border:none;
+  font-family:var(--font);font-size:12px;font-weight:600;
+  cursor:pointer;transition:all .2s;letter-spacing:.3px;
+  position:relative;overflow:hidden;
+}
+.btn::before {
+  content:'';position:absolute;inset:0;
+  background:rgba(255,255,255,0.08);
+  opacity:0;transition:opacity .2s;
+}
+.btn:hover::before { opacity:1; }
+.btn:active { transform:scale(.97); }
+
+.btn-primary {
+  background:linear-gradient(135deg,var(--glow1),var(--glow2));
+  color:#060b18;font-weight:700;
+  box-shadow:0 0 16px rgba(0,212,255,0.3);
+}
+.btn-ghost {
+  background:rgba(28,48,88,0.6);color:var(--glow1);
+  border:1px solid var(--border);
+}
+.btn-ghost:hover { border-color:var(--glow1); }
+
+/* ── OFFLINE BANNER ── */
+#offline-banner {
+  display:none;background:#7c2d12;padding:8px 20px;
+  font-size:12px;text-align:center;color:#fed7aa;
+  position:sticky;top:64px;z-index:199;
+}
+#offline-banner.show { display:block; }
+
+/* ── TABS ── */
+.tabs {
+  display:flex;gap:4px;padding:12px 16px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  overflow-x:auto;scrollbar-width:none;
+  position:sticky;top:64px;z-index:150;
+  backdrop-filter:blur(12px);
+}
+.tabs::-webkit-scrollbar { display:none; }
+
+.tab {
+  padding:8px 16px;border-radius:var(--radius-sm);
+  font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .2s;white-space:nowrap;color:var(--muted);
+  border:1px solid transparent;letter-spacing:.3px;
+}
+.tab.active {
+  background:rgba(0,212,255,0.1);color:var(--glow1);
+  border-color:rgba(0,212,255,0.25);
+}
+.tab:hover:not(.active) { color:var(--text); }
+
+/* ── MAIN ── */
+main { padding:20px 16px calc(20px + var(--safe-bot)); max-width:1400px;margin:0 auto;position:relative;z-index:1; }
+
+/* ── PANELS ── */
+.panel { display:none; }
+.panel.active { display:block;animation:fadeIn .3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* ── STAT CARDS ── */
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;margin-bottom:24px;
+}
+
+.stat-card {
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px 16px;
+  position:relative;overflow:hidden;cursor:default;
+  transition:transform .2s,box-shadow .2s;
+}
+.stat-card:hover { transform:translateY(-2px);box-shadow:var(--shadow); }
+.stat-card::after {
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  border-radius:2px 2px 0 0;
+}
+.stat-card.c1::after { background:linear-gradient(90deg,var(--glow1),transparent); }
+.stat-card.c2::after { background:linear-gradient(90deg,var(--glow2),transparent); }
+.stat-card.c3::after { background:linear-gradient(90deg,var(--fez),transparent); }
+.stat-card.c4::after { background:linear-gradient(90deg,var(--naofez),transparent); }
+.stat-card.c5::after { background:linear-gradient(90deg,var(--warn),transparent); }
+
+.stat-glow {
+  position:absolute;top:-20px;right:-20px;
+  width:80px;height:80px;border-radius:50%;
+  opacity:.08;filter:blur(20px);
+}
+.c1 .stat-glow { background:var(--glow1); }
+.c2 .stat-glow { background:var(--glow2); }
+.c3 .stat-glow { background:var(--fez); }
+.c4 .stat-glow { background:var(--naofez); }
+.c5 .stat-glow { background:var(--warn); }
+
+.stat-label { font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:600; }
+.stat-value { font-size:34px;font-weight:700;margin:4px 0 2px;letter-spacing:-1px;font-family:var(--mono); }
+.c1 .stat-value { color:var(--glow1); }
+.c2 .stat-value { color:var(--glow2); }
+.c3 .stat-value { color:var(--fez); }
+.c4 .stat-value { color:var(--naofez); }
+.c5 .stat-value { color:var(--warn); }
+.stat-sub { font-size:11px;color:var(--muted); }
+
+/* ── SECTION TITLES ── */
+.sec-title {
+  font-size:13px;font-weight:700;letter-spacing:.5px;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:14px;display:flex;align-items:center;gap:8px;
+}
+.sec-title::before {
+  content:'';width:3px;height:16px;border-radius:2px;
+  background:linear-gradient(var(--glow1),var(--glow2));
+}
+
+/* ── CHART CARDS GRID ── */
+.charts-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:14px;margin-bottom:24px;
+}
+.chart-card {
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;
+  display:flex;flex-direction:column;align-items:center;
+  cursor:pointer;transition:all .25s;
+  position:relative;overflow:hidden;
+}
+.chart-card:hover {
+  border-color:var(--glow1);
+  box-shadow:0 0 24px rgba(0,212,255,0.15);
+  transform:translateY(-2px);
+}
+.chart-card.active-turma {
+  border-color:var(--glow1);
+  background:var(--card2);
+  box-shadow:0 0 30px rgba(0,212,255,0.2);
+}
+.chart-card-title { font-size:13px;font-weight:700;margin-bottom:2px;text-align:center; }
+.chart-card-sub { font-size:10px;color:var(--muted);margin-bottom:12px;text-align:center; }
+
+/* ── THREE.JS CANVAS CONTAINER ── */
+.canvas3d {
+  width:160px;height:160px;border-radius:50%;
+  overflow:hidden;position:relative;
+  cursor:grab;
+}
+.canvas3d:active { cursor:grabbing; }
+
+.chart-pct-overlay {
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;pointer-events:none;
+}
+.chart-pct-num { font-family:var(--mono);font-size:22px;font-weight:700;color:var(--fez); }
+.chart-pct-lbl { font-size:9px;color:var(--muted);letter-spacing:.8px; }
+
+.chart-legend {
+  display:flex;gap:12px;margin-top:10px;font-size:11px;
+  justify-content:center;
+}
+.legend-dot { width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px; }
+
+/* ── ALUNO DETAIL PANEL ── */
+.aluno-detail-card {
+  background:var(--card2);border:1px solid var(--glow1);
+  border-radius:var(--radius);padding:20px;
+  margin-bottom:20px;display:none;
+  animation:fadeIn .3s ease;
+  box-shadow:0 0 40px rgba(0,212,255,0.1);
+  flex-direction:column;gap:20px;
+}
+.aluno-detail-card.show { display:flex; }
+.aluno-detail-top {
+  display:flex;flex-wrap:wrap;gap:20px;align-items:center;
+}
+.aluno-3d-wrap { 
+  width:180px;height:180px;
+  position:relative;flex-shrink:0;
+  border-radius:50%;overflow:hidden;
+}
+.aluno-info { flex:1;min-width:200px; }
+.aluno-name { font-size:16px;font-weight:700;margin-bottom:4px; }
+.aluno-turma-badge { font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase; }
+.aluno-stats { display:flex;gap:16px;margin-top:14px;flex-wrap:wrap; }
+.aluno-stat { text-align:center; }
+.aluno-stat-val { font-family:var(--mono);font-size:22px;font-weight:700; }
+.aluno-stat-lbl { font-size:10px;color:var(--muted);margin-top:2px; }
+
+/* ── ATIVIDADES DISCRIMINADAS ── */
+.aluno-ativs-section {
+  border-top:1px solid var(--border);
+  padding-top:16px;
+}
+.aluno-ativs-title {
+  font-size:11px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}
+.aluno-ativs-title::before {
+  content:'';width:3px;height:14px;border-radius:2px;
+  background:linear-gradient(var(--glow1),var(--glow2));
+}
+.ativ-list { display:flex;flex-direction:column;gap:6px; }
+.ativ-item {
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:10px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.02);
+  transition:background .15s;
+  cursor:default;
+}
+.ativ-item:hover { background:rgba(0,212,255,0.04); }
+.ativ-icon {
+  width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;flex-shrink:0;
+}
+.ativ-icon.fez { background:rgba(16,185,129,0.15);color:var(--fez);border:1px solid rgba(16,185,129,0.3); }
+.ativ-icon.naofez { background:rgba(239,68,68,0.15);color:var(--naofez);border:1px solid rgba(239,68,68,0.3); }
+.ativ-icon.vazio { background:rgba(90,122,171,0.1);color:var(--muted);border:1px dashed var(--border); }
+.ativ-body { flex:1;min-width:0; }
+.ativ-nome { font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.ativ-meta { font-size:10px;color:var(--muted);margin-top:2px; }
+.ativ-status-text {
+  font-size:10px;font-weight:700;letter-spacing:.5px;
+  padding:2px 8px;border-radius:12px;flex-shrink:0;
+}
+.ativ-status-text.fez { background:rgba(16,185,129,0.15);color:var(--fez); }
+.ativ-status-text.naofez { background:rgba(239,68,68,0.15);color:var(--naofez); }
+.ativ-status-text.vazio { background:rgba(90,122,171,0.1);color:var(--muted); }
+.ativ-num {
+  width:20px;font-family:var(--mono);font-size:10px;
+  color:var(--muted);flex-shrink:0;text-align:right;
+}
+
+/* ── TABLE CARD ── */
+.table-card {
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;margin-bottom:20px;
+}
+.table-header {
+  padding:14px 18px;display:flex;align-items:center;
+  justify-content:space-between;border-bottom:1px solid var(--border);
+  flex-wrap:wrap;gap:10px;
+}
+.table-header h2 { font-size:14px;font-weight:700; }
+.table-controls { display:flex;gap:8px;flex-wrap:wrap; }
+
+.form-ctrl {
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);padding:8px 12px;border-radius:var(--radius-sm);
+  font-size:12px;outline:none;font-family:var(--font);
+  transition:border-color .2s;
+}
+.form-ctrl:focus { border-color:var(--glow1); }
+.form-ctrl::placeholder { color:var(--muted); }
+
+.table-wrap { overflow-x:auto; }
+table { width:100%;border-collapse:collapse;min-width:500px; }
+thead { background:var(--surface); }
+th {
+  padding:10px 14px;text-align:left;font-size:10px;
+  color:var(--muted);font-weight:600;text-transform:uppercase;
+  letter-spacing:1px;border-bottom:1px solid var(--border);
+}
+td { padding:10px 14px;font-size:12px;border-bottom:1px solid rgba(28,48,88,0.4); }
+tbody tr { transition:background .15s; }
+tbody tr:hover { background:rgba(0,212,255,0.04); }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr.clickable-row { cursor:pointer; }
+
+.badge {
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;
+  letter-spacing:.3px;
+}
+.badge-fez { background:rgba(16,185,129,0.15);color:var(--fez);border:1px solid rgba(16,185,129,0.3); }
+.badge-naofez { background:rgba(239,68,68,0.15);color:var(--naofez);border:1px solid rgba(239,68,68,0.3); }
+.badge-atencao { background:rgba(245,158,11,0.15);color:var(--atencao);border:1px solid rgba(245,158,11,0.3); }
+.badge-turma { background:rgba(0,212,255,0.1);color:var(--glow1);border:1px solid rgba(0,212,255,0.2); }
+
+.pbar-wrap { display:flex;align-items:center;gap:8px; }
+.pbar { height:5px;border-radius:3px;background:var(--border);overflow:hidden;flex:1;min-width:50px; }
+.pbar-fill { height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);
+  backdrop-filter:blur(10px);z-index:900;
+  display:none;align-items:center;justify-content:center;padding:16px;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:var(--card);border:1px solid var(--border2);
+  border-radius:18px;padding:24px;width:100%;max-width:520px;
+  max-height:90dvh;overflow-y:auto;
+  box-shadow:0 0 60px rgba(0,212,255,0.15);
+  animation:modalIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes modalIn { from{transform:scale(.92) translateY(20px);opacity:0} to{transform:none;opacity:1} }
+
+.modal-head {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
+.modal-head h2 { font-size:17px;font-weight:700; }
+.modal-close {
+  width:30px;height:30px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  transition:all .2s;
+}
+.modal-close:hover { border-color:var(--glow1);color:var(--glow1); }
+
+.form-group { margin-bottom:14px; }
+.form-label {
+  font-size:10px;color:var(--muted);margin-bottom:6px;
+  display:block;text-transform:uppercase;letter-spacing:1px;font-weight:600;
+}
+.form-input,.form-select {
+  width:100%;background:var(--surface);border:1px solid var(--border);
+  color:var(--text);padding:10px 14px;border-radius:10px;
+  font-size:13px;outline:none;font-family:var(--font);transition:border-color .2s;
+}
+.form-input:focus,.form-select:focus { border-color:var(--glow1); }
+.form-input::placeholder { color:var(--muted); }
+.form-row { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+
+.status-group { display:flex;gap:8px; }
+.status-btn {
+  flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);
+  cursor:pointer;text-align:center;font-size:13px;font-weight:600;
+  transition:all .2s;background:var(--surface);color:var(--muted);
+  font-family:var(--font);
+}
+.status-btn.sel-fez {
+  border-color:var(--fez);background:rgba(16,185,129,0.12);color:var(--fez);
+  box-shadow:0 0 12px rgba(16,185,129,0.2);
+}
+.status-btn.sel-naofez {
+  border-color:var(--naofez);background:rgba(239,68,68,0.12);color:var(--naofez);
+  box-shadow:0 0 12px rgba(239,68,68,0.2);
+}
+
+.form-footer { display:flex;gap:8px;margin-top:20px; }
+.form-footer .btn { flex:1;padding:12px;font-size:13px; }
+
+/* ── SYNC STATUS ── */
+.sync-indicator {
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--muted);
+}
+.sync-dot {
+  width:7px;height:7px;border-radius:50%;
+  background:var(--fez);
+  box-shadow:0 0 6px var(--fez);
+  animation:pulse 2s infinite;
+}
+.sync-dot.syncing { background:var(--warn);box-shadow:0 0 6px var(--warn); }
+.sync-dot.error { background:var(--naofez);box-shadow:0 0 6px var(--naofez);animation:none; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+
+/* ── TOAST ── */
+#toast {
+  position:fixed;bottom:calc(24px + var(--safe-bot));left:50%;
+  transform:translateX(-50%) translateY(80px);
+  background:var(--card2);border:1px solid var(--border2);
+  border-radius:12px;padding:12px 20px;
+  font-size:12px;z-index:9999;
+  transition:all .35s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;white-space:nowrap;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  opacity:0;max-width:90vw;text-align:center;
+}
+#toast.show { transform:translateX(-50%) translateY(0);opacity:1; }
+#toast.success { border-color:var(--fez);color:var(--fez); }
+#toast.error { border-color:var(--naofez);color:var(--naofez); }
+#toast.info { border-color:var(--glow1);color:var(--glow1); }
+
+/* ── INSTALL PROMPT ── */
+#install-prompt {
+  display:none;position:fixed;bottom:calc(80px + var(--safe-bot));right:16px;
+  background:var(--card2);border:1px solid var(--glow1);
+  border-radius:var(--radius);padding:14px 16px;
+  box-shadow:0 0 30px rgba(0,212,255,0.2);
+  z-index:500;max-width:260px;animation:fadeIn .4s ease;
+}
+#install-prompt.show { display:block; }
+#install-prompt h3 { font-size:13px;font-weight:700;margin-bottom:4px; }
+#install-prompt p { font-size:11px;color:var(--muted);margin-bottom:12px;line-height:1.4; }
+#install-prompt .btn-row { display:flex;gap:8px; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:4px;height:4px; }
+::-webkit-scrollbar-track { background:var(--surface); }
+::-webkit-scrollbar-thumb { background:var(--border2);border-radius:4px; }
+
+/* ── TURMA HEADER TABLE ── */
+.turma-block { margin-bottom:24px; }
+.turma-block-header {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;flex-wrap:wrap;gap:10px;
+}
+.turma-block-header h3 { font-size:15px;font-weight:700; }
+.turma-mini-chart {
+  width:70px;height:70px;position:relative;cursor:grab;
+  border-radius:50%;overflow:hidden;
+}
+.pct-mini {
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:var(--mono);font-size:13px;font-weight:700;
+  color:var(--fez);pointer-events:none;
+}
+
+/* ── ACTIVITY PILLS ── */
+.pills { display:flex;gap:3px;flex-wrap:wrap; }
+.pill {
+  width:22px;height:22px;border-radius:5px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;position:relative;cursor:default;
+}
+.pill-fez { background:rgba(16,185,129,0.18);color:var(--fez);border:1px solid rgba(16,185,129,0.3); }
+.pill-naofez { background:rgba(239,68,68,0.18);color:var(--naofez);border:1px solid rgba(239,68,68,0.3); }
+.pill-vazio { background:rgba(90,122,171,0.1);color:var(--muted);border:1px dashed var(--border); }
+.pill:hover::after {
+  content:attr(data-tip);
+  position:absolute;bottom:120%;left:50%;transform:translateX(-50%);
+  background:#1c3058;border:1px solid var(--border2);
+  color:var(--text);font-size:10px;padding:4px 8px;border-radius:6px;
+  white-space:nowrap;z-index:50;pointer-events:none;font-weight:400;
+}
+
+/* ── LOADING ── */
+.loading {
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:60px;gap:16px;
+}
+.spin {
+  width:36px;height:36px;border-radius:50%;
+  border:3px solid var(--border);
+  border-top-color:var(--glow1);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── NOTA PILL ── */
+.nota-pill {
+  display:inline-flex;align-items:center;gap:3px;
+  padding:4px 10px;border-radius:20px;
+  font-size:12px;white-space:nowrap;
+}
+
+/* ── ALUNO INLINE DETAIL (aba Alunos) ── */
+.aluno-inline-detail {
+  background:rgba(0,212,255,0.03);
+  border-top:1px solid var(--border);
+  border-bottom:2px solid rgba(0,212,255,0.2);
+  animation:fadeIn .25s ease;
+}
+
+@media (max-width:600px) {
+  .form-row { grid-template-columns:1fr; }
+  .charts-grid { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; }
+  .aluno-detail-top { flex-direction:column; }
+  .aluno-3d-wrap { align-self:center; width:140px; height:140px; }
+  .stats-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+  .stat-card { padding:14px 12px; }
+  .stat-value { font-size:24px; }
+  .stat-label { font-size:9px; }
+  table { min-width:100%; }
+  th { padding:8px 6px; font-size:9px; }
+  td { padding:8px 6px; font-size:10px; }
+  .table-header { padding:12px; }
+  .table-header h2 { font-size:13px; }
+  .form-ctrl { font-size:11px; padding:6px 8px; width:100%; }
+  .header-btns .btn { padding:6px 10px; font-size:11px; }
+  .brand-text h1 { font-size:13px; }
+  .brand-icon { width:32px; height:32px; font-size:16px; }
+  .canvas3d { width:120px; height:120px; }
+  .chart-pct-num { font-size:18px; }
+  main { padding:12px 10px calc(16px + var(--safe-bot)); }
+  .table-controls { width:100%; display:grid; grid-template-columns:1fr; gap:6px; }
+  #search-aluno { width:100% !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="brand">
+    <div class="brand-icon">📊</div>
+    <div class="brand-text">
+      <h1>Controle de Atividades</h1>
+      <p>2º Bimestre 2026 · EE Wanda Mascagni</p>
+    </div>
+  </div>
+  <div class="header-btns">
+    <div class="sync-indicator">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">Online</span>
+    </div>
+    <button class="btn btn-ghost" onclick="syncToSheets()" id="btn-sync">🔄 Sync</button>
+    <button class="btn btn-primary" onclick="openModal()">+ Lançar</button>
+  </div>
+</header>
+
+<!-- OFFLINE -->
+<div id="offline-banner">⚠️ Sem conexão — dados salvos localmente e sincronizados quando reconectar</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard',this)">Dashboard</div>
+  <div class="tab" onclick="switchTab('turmas',this)">Por Turma</div>
+  <div class="tab" onclick="switchTab('alunos',this)">Alunos</div>
+  <div class="tab" onclick="switchTab('atividades',this)">Atividades</div>
+</div>
+
+<main>
+
+  <!-- DASHBOARD -->
+  <div id="panel-dashboard" class="panel active">
+    <div class="stats-grid" id="stats-grid"></div>
+
+    <!-- Aluno Detail (when selected) -->
+    <div class="aluno-detail-card" id="aluno-detail">
+      <div class="aluno-detail-top">
+        <div class="aluno-3d-wrap" id="aluno-3d-wrap"></div>
+        <div class="aluno-info">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+            <div class="aluno-name" id="aluno-detail-name">—</div>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="closeAlunoDetail()">✕ Fechar</button>
+          </div>
+          <div class="aluno-turma-badge badge badge-turma" id="aluno-detail-turma">—</div>
+          <div class="aluno-stats" id="aluno-detail-stats"></div>
+        </div>
+      </div>
+      <!-- Atividades discriminadas -->
+      <div class="aluno-ativs-section" id="aluno-ativs-section"></div>
+    </div>
+
+    <div class="sec-title">Rendimento por Turma</div>
+    <div class="charts-grid" id="charts-grid"></div>
+
+    <div class="sec-title">Ranking Geral</div>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Turma</th><th>Alunos</th><th>Realizações</th><th>Taxa</th><th>Nota Part.</th><th>Status</th></tr></thead>
+          <tbody id="ranking-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- POR TURMA -->
+  <div id="panel-turmas" class="panel">
+    <div class="table-card" style="padding:16px; margin-bottom:20px;">
+      <label class="form-label" style="font-size:12px; margin-bottom:8px;">Escolha a Turma</label>
+      <select class="form-select" id="view-turma-dropdown" onchange="renderTurmas()">
+        <option value="">— Selecione uma turma —</option>
+      </select>
+    </div>
+    <div id="turmas-content"></div>
+  </div>
+
+  <!-- ALUNOS -->
+  <div id="panel-alunos" class="panel">
+    <div class="table-card">
+      <div class="table-header">
+        <h2>👤 Alunos</h2>
+        <div class="table-controls">
+          <select class="form-ctrl" id="filtro-turma" onchange="renderAlunos()">
+            <option value="">Todas as turmas</option>
+          </select>
+          <input class="form-ctrl" id="search-aluno" placeholder="🔍 Buscar…" oninput="renderAlunos()" style="width:160px">
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Nome</th><th>Turma</th><th>FEZ/Total</th><th>Progresso</th><th>Nota</th><th>Status</th><th></th></tr></thead>
+          <tbody id="tbody-alunos"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATIVIDADES -->
+  <div id="panel-atividades" class="panel">
+    <div class="table-card">
+      <div class="table-header">
+        <h2>📋 Atividades</h2>
+        <select class="form-ctrl" id="filtro-ativ-turma" onchange="renderAtividades()">
+          <option value="">Todas as turmas</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Turma</th><th>Data</th><th>Atividade</th><th>Recurso</th><th>FEZ</th><th>Taxa</th></tr></thead>
+          <tbody id="tbody-atividades"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOut(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>✏️ Lançar Atividade</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Turma</label>
+      <select class="form-select" id="f-turma"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Aluno</label>
+      <select class="form-select" id="f-aluno"><option value="">— Selecione a turma primeiro —</option></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input type="date" class="form-input" id="f-data">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Recurso</label>
+        <select class="form-select" id="f-recurso">
+          <option>Caderno</option>
+          <option>Livro do Estudante</option>
+          <option>Apostila</option>
+          <option>Caderno + Livro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrição da Atividade</label>
+      <input type="text" class="form-input" id="f-atividade" placeholder="Ex: Aula 3 - Hidrosfera (pág. 85)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="status-group">
+        <button class="status-btn" onclick="selectStatus('FEZ')" id="sbtn-fez">✅ FEZ</button>
+        <button class="status-btn" onclick="selectStatus('NÃO FEZ')" id="sbtn-naofez">❌ NÃO FEZ</button>
+      </div>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitActivity()" id="btn-save">💾 Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALUNO -->
+<div class="modal-overlay" id="modal-aluno-overlay" style="z-index:950;" onclick="closeModalOut(event, 'modal-aluno-overlay')">
+  <div class="modal" id="modal-aluno-content">
+    <div class="modal-head">
+      <h2 id="modal-aluno-title">👤 Detalhes do Aluno</h2>
+      <button class="modal-close" onclick="closeModal('modal-aluno-overlay')">✕</button>
+    </div>
+    <div id="modal-aluno-body"></div>
+  </div>
+</div>
+
+<!-- MODAL TURMA -->
+<div class="modal-overlay" id="modal-turma-overlay" onclick="closeModalOut(event, 'modal-turma-overlay')">
+  <div class="modal" style="max-width:800px;">
+    <div class="modal-head">
+      <h2 id="modal-turma-title">📚 Turma</h2>
+      <button class="modal-close" onclick="closeModal('modal-turma-overlay')">✕</button>
+    </div>
+    <div id="modal-turma-body"></div>
+  </div>
+</div>
+
+<!-- INSTALL PROMPT -->
+<div id="install-prompt">
+  <h3>📲 Instalar App</h3>
+  <p>Instale no seu celular para acessar offline como um app nativo.</p>
+  <div class="btn-row">
+    <button class="btn btn-ghost" onclick="hideInstall()" style="flex:1;padding:8px;font-size:11px">Agora não</button>
+    <button class="btn btn-primary" onclick="installApp()" style="flex:1;padding:8px;font-size:11px">Instalar</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CONFIGURAÇÃO GOOGLE SHEETS
+//  ⚠️ Substitua APPS_SCRIPT_URL pela URL do seu Web App
+//  publicado em Extensões → Apps Script → Implantar
+// ═══════════════════════════════════════════════════
+const SHEET_ID   = '1CzqPjjGlniT16bAGYI5T9KGfgUvKVMRsgdyHX2KC6gA';
+const APPS_SCRIPT_URL = ''; // Cole aqui a URL do Web App após publicar
+
+// ═══════════════════════════════════════════════════
+//  DADOS
+// ═══════════════════════════════════════════════════
+const TURMAS_DATA = {
+  "6ºAno A": {
+    atividades:[
+      {nome:"Aula 1 - Camadas da Terra",data:"28/04/2026",recurso:"Caderno"},
+      {nome:"Páginas 81 e 83",data:"04/05/2026",recurso:"Apostila"},
+      {nome:"Mapa Conceitual",data:"04/05/2026",recurso:"Caderno"},
+      {nome:"Página 85",data:"05/05/2026",recurso:"Apostila"},
+      {nome:"Páginas 83, 85 e 87",data:"11/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Páginas 89",data:"14/05/2026",recurso:"Livro do Estudante"}
+    ],
+    alunos:[
+      {num:1,nome:"ANA CHRYSTINA TIEKO DA PAIXAO",status:["FEZ","FEZ","FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:2,nome:"ANTONELLA ALVES XAVIER",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:3,nome:"ARTHUR DANIEL MASSAKI LIMA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:4,nome:"BARBARA CRISTINA FERREIRA DA SILVA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:5,nome:"BERNARDO GOMES ANDRADE DE OLIVEIRA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:6,nome:"BYANCA DOS SANTOS PEREIRA",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:8,nome:"DANIEL DA SILVA MARQUES",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:9,nome:"DAVI LUCAS DA SILVA FEITOSA",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","FEZ","FEZ"]},
+      {num:11,nome:"DIOGO SOARES FIUZA",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","FEZ","FEZ"]},
+      {num:12,nome:"EDUARDA SOPHIA LOPES LIMA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:13,nome:"EDUARDA STHEFANY MARQUES DA SILVA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:14,nome:"ENZO GABRIEL SOUZA LOPES",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:15,nome:"ESTER VITORIA FELIX DA CRUZ",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:16,nome:"GUILHERME HENRIQUE ALMEIDA DO NASCIMENTO",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:17,nome:"HIAGO ALEXANDRE BARBOSA DE PAULA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:18,nome:"JORGE GABRIEL SANTOS ASSIS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:19,nome:"MARIA CLARA MOURA ROMUALDO",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:20,nome:"MATHEUS CARVALHO ROSA",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:21,nome:"MAYSA DOS SANTOS VIEIRA",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:22,nome:"MELISSA MIRELLY OLIVEIRA DOS REIS",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:23,nome:"MURILO SARAIVA TRINDADE",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:24,nome:"PABLO LUCAS DA SILVA",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","FEZ","FEZ"]},
+      {num:25,nome:"PEDRO HENRIQUE DO NASCIMENTO SANTOS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:27,nome:"PEDRO LUCAS CRUZ PRIORI",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:29,nome:"PIETRO OLIVEIRA FREITAS",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:30,nome:"RAFAEL ALVES ROCHA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:31,nome:"RIQUELME SOTERO RODRIGUES",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:32,nome:"SOPHIA GIOVANA OLIVEIRA ALVES",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:33,nome:"VINICIUS BESERRA ARAUJO",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:34,nome:"VINICIUS RIBEIRO AMARAL ABRAHAO",status:["NÃO FEZ","FEZ","FEZ","FEZ","FEZ","NÃO FEZ"]}
+    ]
+  },
+  "6ºAno B": {
+    atividades:[
+      {nome:"Aula 1 - Camadas da Terra",data:"04/05/2026",recurso:"Caderno"},
+      {nome:"Páginas 81 e 83",data:"05/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Página 85",data:"05/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Página 87",data:"12/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Aula 4 - Organização da Matéria",data:"12/05/2026",recurso:"Caderno"},
+      {nome:"Aula 5 - Ciclo da Água",data:"12/05/2026",recurso:"Caderno"}
+    ],
+    alunos:[
+      {num:1,nome:"ALICE ALVES BRITO DA COSTA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:2,nome:"ANA CLARA BATISTA BRITO",status:["FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:4,nome:"ANNA JULIA CARVALHO MARQUES",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:6,nome:"DAVI HENRIQUE SILVA DE MELO",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:7,nome:"DAVI LUIZ CARDOSO BARBOSA",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:8,nome:"ELOAH OLIVEIRA DE SOUZA",status:["NÃO FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:9,nome:"ESTHER ARAUJO DE OLIVEIRA",status:["FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:10,nome:"JAMILY FERNANDA GONZALES ADUVIRI",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:11,nome:"KENNEDY GABRIEL ALVES DA SILVA",status:["NÃO FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:13,nome:"LAURA VITORIA JESUS SOUZA",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:16,nome:"MARIA EDUARDA FERREIRA TORRES",status:["FEZ","FEZ","FEZ","FEZ","FEZ",""]},
+      {num:17,nome:"MARIA EDUARDA RIBEIRO DE OLIVEIRA ROCHA",status:["NÃO FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:18,nome:"MARIA LUIZA ALVES DA SILVA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:20,nome:"MATHEUS MEDEIROS DE FARIA MONZEN",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:22,nome:"MIGUEL CERCUNDO TEODORO",status:["NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:23,nome:"MIGUEL GOUVEA CARDOSO",status:["NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:24,nome:"MIGUEL OLIVEIRA ALVES",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ","FEZ"]},
+      {num:26,nome:"MIGUEL SILVA SOUZA",status:["NÃO FEZ","FEZ","NÃO FEZ","FEZ","NÃO FEZ","FEZ"]},
+      {num:27,nome:"MILLENA ALEJANDRA CARDOSO BUSTILLOS",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ",""]},
+      {num:28,nome:"MILLENA OLIVEIRA DOS SANTOS",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:29,nome:"NICOLE FERREIRA SANTOS",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:30,nome:"NICOLLY EVARISTO DUTRA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:31,nome:"PABLO HENRIQUE SANTOS RODRIGUES",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:32,nome:"PEDRO CESAR OLIVEIRA LOPES",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:33,nome:"PIETRO GABRIEL VIEIRA DA SILVA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:34,nome:"RICHARD SAMUEL PEREIRA NASCIMENTO",status:["FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:35,nome:"SARA CAROLINE FONSECA PORFIRIO",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:36,nome:"SOPHIA RIBEIRO SANTOS",status:["FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:37,nome:"THAYLA EMANOELLY ANDRADE FIDELIS",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:38,nome:"VITORIA YASMIN FIRMINO DE OLIVEIRA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:39,nome:"WILLIAM ALVES CORAZZA",status:["FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ",""]},
+      {num:40,nome:"MANUELA ELI DOS SANTOS SILVA",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ",""]}
+    ]
+  },
+  "6ºAno C": {
+    atividades:[
+      {nome:"Aula 1 - Camadas da Terra",data:"04/05/2026",recurso:"Caderno"},
+      {nome:"Livro do Estudante pág. 81 e 85",data:"04/05/2026",recurso:"Livro do Estudante"},
+      {nome:"5 Questões",data:"04/05/2026",recurso:"Caderno"},
+      {nome:"Aula 3 - Hidrosfera",data:"11/05/2026",recurso:"Caderno"},
+      {nome:"Livro p. 85 e 87",data:"11/05/2026",recurso:"Livro do Estudante"}
+    ],
+    alunos:[
+      {num:2,nome:"ANA JULIA DE SOUZA LOPES",status:["FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:3,nome:"ARTHUR GOMES MINZÉ",status:["FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:4,nome:"BRAYAN DE OLIVEIRA LOPES",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:5,nome:"CARLOS HENRIQUE ROSA PAULINO",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:7,nome:"DAVI LUCAS DE SOUZA SILVA",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:8,nome:"DAVI LUCAS MATIAS RIBEIRO",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:9,nome:"DAVI SOUSA OLIVEIRA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:10,nome:"FELIPE GABRIEL ALVES ARAUJO",status:["NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:11,nome:"GEOVANA SALDANHA DOS SANTOS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:15,nome:"ISABELLY DE OLIVEIRA SANTOS",status:["FEZ","FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:16,nome:"JOHN GRIGORIO SILVA",status:["FEZ","FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:17,nome:"KAMILY GABRIELLY SOARES XAVIER",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:18,nome:"KAROLINA APARECIDA DE LIRA",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:19,nome:"LAVINIA LIUS DE ALMEIDA MORAES",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:20,nome:"LEANDRO OLIVEIRA LINO",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:21,nome:"LUAN HENRIQUE BERNEGOSSO DA CRUZ",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:22,nome:"MANUELLA DE MORAES SILVA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:23,nome:"MARIA CLARA DE SOUZA LOPES",status:["FEZ","FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:25,nome:"MATEUS HENRIQUE SOUSA SANTOS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:26,nome:"MIQUEIAS DEL VALLE ISAIAS MAGALHAES",status:["FEZ","FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:27,nome:"MIQUEIAS PAULINO SILVA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:28,nome:"NATAN CASTRO DE CARVALHO",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:29,nome:"NICOLLE MARQUES DA SILVA",status:["FEZ","NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:32,nome:"PIETTRO SORRILHA SOUZA",status:["FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:33,nome:"RAFAELA FARIA SILVA",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:34,nome:"SOFIA GOMES DANTAS",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:35,nome:"TAYANK ROBER LIMACHI CHOQUE",status:["FEZ","FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:37,nome:"VICTOR JUNIOR TENORIO COSTA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]}
+    ]
+  },
+  "2ºDS": {
+    atividades:[
+      {nome:"Aula 1 - Conservação e Preservação",data:"30/04/2026",recurso:"Livro do Estudante"},
+      {nome:"Aula 3 - Bioacumulação",data:"07/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Livro p. 66, 68, 69, 71 e 72",data:"13/05/2026",recurso:"Livro do Estudante"}
+    ],
+    alunos:[
+      {num:1,nome:"ALAN EDUARDO DOS SANTOS BARBOSA",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:3,nome:"ANA BEATRIZ DE LIMA TOMAZ",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:4,nome:"ANA BEATRIZ MOURA AMARO OLIVEIRA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:6,nome:"ANDRÉ DOS REIS ARAÚJO",status:["FEZ","FEZ","NÃO FEZ"]},
+      {num:7,nome:"ANNY LUIZA MARQUES DE SOUZA",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:8,nome:"ARTUR SANTOS DE OLIVEIRA",status:["FEZ","NÃO FEZ","FEZ"]},
+      {num:10,nome:"CATHARINA KESS RUBIO MENDES",status:["NÃO FEZ","FEZ","FEZ"]},
+      {num:11,nome:"DANIEL FERREIRA DOS SANTOS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:14,nome:"ERIK TAVARES AUGUSTO",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:15,nome:"FELIPE AUGUSTO DE SOUZA ALCARAZ",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:16,nome:"GEOVANNA DOS SANTOS MENDES",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:17,nome:"HENRY ALVES TOZZI DA SILVA PIRES",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:18,nome:"ISABELLA MONTEIRO BARCELLOS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:19,nome:"JENNIFER CARVALHO COSTA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:20,nome:"JUHAN DOS SANTOS MARIN",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:21,nome:"JULIA ARAUJO DE LIMA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:22,nome:"JULIANA SILVA DE LIMA NEVES",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:25,nome:"LEANDRO MACIEL CORRÊA",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:26,nome:"LEONARDO LIMA DE JESUS",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:27,nome:"MARIAH LUIZA DO NASCIMENTO CARVALHO",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:29,nome:"MISAEL MARTINS DE ANDRADE JUNIOR",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:30,nome:"MURILO GABRIEL RIOS LEAO",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:31,nome:"NATAN SANTOS XAVIER",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:33,nome:"NICOLE PEREIRA LUCIANO",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:35,nome:"PIETRO COELHO MARTINS",status:["FEZ","FEZ","FEZ"]},
+      {num:36,nome:"POUL WILLYAM MACHADO ALVES DOS SANTOS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:38,nome:"RAPHAEL DA SILVA TAVARES",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:40,nome:"VICTOR DANIEL GARCIA SANCHEZ",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:42,nome:"VITOR HUGO SILVA RIO BRANCO",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:43,nome:"VITOR VINICIUS PEREIRA VASCONCELOS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ"]}
+    ]
+  },
+  "7ºAno A": {
+    atividades:[
+      {nome:"Aula 2 - Desmatamento e Queimadas",data:"13/05/2026",recurso:"Caderno"},
+      {nome:"Aula 1 pág. 81, 82 / Aula 2 pág. 84",data:"13/05/2026",recurso:"Livro do Estudante"}
+    ],
+    alunos:[
+      {num:1,nome:"ÁGATHA CAMPOS DE SOUSA",status:["FEZ","FEZ"]},
+      {num:2,nome:"ALBERT BARROS CARDOSO",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:3,nome:"ALEXIA LOHANA COSTA DE OLIVEIRA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:4,nome:"ANA CAROLINA GONCALVES NASCIMENTO DE LIMA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:5,nome:"ARIANE DIAS SOARES",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:6,nome:"BRYAN OLLIVER TEIXEIRA RODRIGUES DE SALLES",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:7,nome:"CRYSTHOPHER PIERRE CAVALCANTE RUBIRA",status:["FEZ","NÃO FEZ"]},
+      {num:8,nome:"EMANUELLA RIBEIRO MAFRA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:9,nome:"FHELIPE OLIVEIRA CAETANO PEREIRA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:10,nome:"GABRIEL CHAVES RAMOS",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:11,nome:"GEOVANNA NEVILE DIAS",status:["NÃO FEZ","FEZ"]},
+      {num:12,nome:"HENRIQUE VIANA LEITE",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:13,nome:"ISABELLA DE SOUZA SILVA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:14,nome:"ISABELLY SOPHIA VIEIRA LIMA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:15,nome:"ISABELLY VITORIA DA SILVA MOREIRA",status:["NÃO FEZ","FEZ"]},
+      {num:16,nome:"JÁDINA COELHO ABADE",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:17,nome:"JEAN PAULO MARTINS DA SILVA",status:["FEZ","NÃO FEZ"]},
+      {num:18,nome:"KAUANY NIKELY CARDOSO DA SILVA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:19,nome:"KETTELLEN VITORIA DA SILVA CARDOSO",status:["NÃO FEZ","FEZ"]},
+      {num:21,nome:"LUAN CAIO LOPES DE LIMA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:23,nome:"LUIZ HENRIQUE DA SILVA FRANÇA",status:["FEZ","NÃO FEZ"]},
+      {num:24,nome:"MAYSA CORREIA DE OLIVEIRA",status:["FEZ","FEZ"]},
+      {num:25,nome:"MAYSA FERNANDA DE OLIVEIRA CARVALHO",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:27,nome:"OTAVIO DO NASCIMENTO CONCEICAO",status:["FEZ","NÃO FEZ"]},
+      {num:28,nome:"PEDRO BRANDAO SANTOS",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:30,nome:"RAFAELLA VICTORIA ABREU DOS ANJOS",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:31,nome:"RAPHAEL CORREA AZEVEDO",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:32,nome:"RYAN FREITAS FERREIRA",status:["FEZ","NÃO FEZ"]},
+      {num:33,nome:"SAYMON GABRIEL DE JESUS BARBOSA",status:["FEZ","NÃO FEZ"]},
+      {num:34,nome:"YASMIM MANGILI SILVA",status:["FEZ","NÃO FEZ"]},
+      {num:35,nome:"YASMIM NOVAES SOARES",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:36,nome:"YASMIN CRISTINA PEREIRA CORREIA",status:["FEZ","NÃO FEZ"]},
+      {num:37,nome:"ENZO MANGILI SILVA",status:["NÃO FEZ","NÃO FEZ"]}
+    ]
+  },
+  "7ºAno B": {
+    atividades:[
+      {nome:"6 questões sobre combustíveis fósseis",data:"04/05/2026",recurso:"Caderno"},
+      {nome:"Aula 1 - Combustíveis Fósseis",data:"08/05/2026",recurso:"Caderno"},
+      {nome:"Aula 3 - Organização da Matéria",data:"11/05/2026",recurso:"Caderno"},
+      {nome:"Páginas 80, 81, 84, 87 e 88",data:"11/05/2026",recurso:"Livro do Estudante"}
+    ],
+    alunos:[
+      {num:1,nome:"ABRAAO JUNIOR SOUSA BATISTA",status:["NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:2,nome:"ALEX ROBERTO BARBOZA DE CARVALHO",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:3,nome:"AMANDA MARTINS SANTOS DA SILVA",status:["NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:4,nome:"ANA CECILIA LEAO DE ALMEIDA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:7,nome:"BEATRIZ NASCIMENTO ALVES",status:["NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:9,nome:"BERNARDO BENJAMIN DE SOUSA MOREIRA",status:["NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:10,nome:"BRUNO HENRIQUE SERAFIM",status:["NÃO FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:11,nome:"DANIEL ROCHA COSTA",status:["NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:12,nome:"DAVY MIGUEL BENVINDO CORREIA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:13,nome:"ERICK ROBERTO ESTEVAM OLIVEIRA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:14,nome:"FELIPE WENDEL GONÇALVES DOS SANTOS",status:["NÃO FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:15,nome:"FERNANDA MARCOS SOARES",status:["NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:16,nome:"GUILHERME CAMARGO MOTA",status:["NÃO FEZ","FEZ","FEZ","FEZ"]},
+      {num:17,nome:"GUILHERME DE BRITO ROCHA",status:["NÃO FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:18,nome:"HEDERSON FERNANDO FELIX DE SOUZA",status:["FEZ","FEZ","FEZ","FEZ"]},
+      {num:19,nome:"JENIFER MEDEIROS ALVES",status:["NÃO FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:20,nome:"JHULIA FERNANDA MENDES",status:["NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:22,nome:"KENNETH BARTHOLOMEW KOSH IV",status:["FEZ","FEZ","FEZ","FEZ"]},
+      {num:23,nome:"LARYSSA XAVIER DE SOUZA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:26,nome:"LOHANA GABRIELY GONCALVES DA SILVA",status:["NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:27,nome:"MANOELLA FREITAS SOARES",status:["FEZ","FEZ","FEZ","FEZ"]},
+      {num:28,nome:"MATHEUS LOPES FERREIRA",status:["FEZ","FEZ","FEZ","FEZ"]},
+      {num:29,nome:"MAYRA CORREIA DE OLIVEIRA",status:["NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:30,nome:"MILENA KAROLINE ALVES COSTA",status:["NÃO FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:31,nome:"RUAM MACOLLY DE ALMEIDA SANTOS",status:["NÃO FEZ","FEZ","FEZ","FEZ"]},
+      {num:32,nome:"SOPHIA EVANGELISTA COBRA DE CARVALHO",status:["NÃO FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:33,nome:"VITOR HUGO GUERREIRO RODRIGUES",status:["NÃO FEZ","FEZ","FEZ","FEZ"]}
+    ]
+  },
+  "8ºAno A": {
+    atividades:[
+      {nome:"Aula 1 - Macronutrientes",data:"07/05/2026",recurso:"Caderno"},
+      {nome:"5 Questões sobre Macronutrientes",data:"08/05/2026",recurso:"Caderno"},
+      {nome:"Aula 1 e 2 - Macro e Micronutrientes",data:"08/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Aula 3 - Alimentos",data:"12/05/2026",recurso:"Caderno"}
+    ],
+    alunos:[
+      {num:1,nome:"ALICE CARDOSO DE ALCANTARA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:3,nome:"ANA LUIZA VALENCA PAIVA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:5,nome:"BRYAN DINIZ SILVA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:6,nome:"CARLOS EDUARDO MENEZES MACHADO",status:["FEZ","FEZ","FEZ","FEZ"]},
+      {num:7,nome:"EVANDRO CUTOLO TEIXEIRA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:9,nome:"GABRIELA SANTOS COSTA",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:11,nome:"GUILHERME CARMO RODRIGUES",status:["FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:12,nome:"GUSTAVO HENRIQUE DA SILVA",status:["FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:13,nome:"ISAAC FERNANDES DE ANDRADE",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:15,nome:"KELVIN DUARTE GONCALVES",status:["FEZ","FEZ","FEZ","FEZ"]},
+      {num:16,nome:"LAURA VITORIA ROCHA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:18,nome:"LETICIA CUSTODIO LIMA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:19,nome:"LUCAS EDUARDO DA SILVA SANTANA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:20,nome:"MATHEUS KAUÃ DOS SANTOS NASCIMENTO",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:21,nome:"MAYARA CAETANO DE OLIVEIRA PINA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:22,nome:"MIGUEL LIMA DE MESQUITA",status:["FEZ","FEZ","NÃO FEZ","FEZ"]},
+      {num:24,nome:"NICOLAS ROCHA SILVA",status:["FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:25,nome:"PAOLLA MICHELLINE DOS SANTOS MARQUES",status:["FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:27,nome:"PEDRO HENRIQUE CORREA DE BRITO",status:["FEZ","FEZ","NÃO FEZ","FEZ"]},
+      {num:28,nome:"PEDRO LEONARDO DE ANDRADE MARQUES",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:29,nome:"RAFAEL HENRIQUE SIQUEIRA BERNARDES ZIA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:30,nome:"RAPHAEL MATHIAS NUNES MIRANDA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:33,nome:"RYAN GABRIEL PEREIRA DE SOUSA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:34,nome:"SAMUEL ALVES DA COSTA",status:["FEZ","FEZ","NÃO FEZ","FEZ"]},
+      {num:35,nome:"SOFIA AZEREDO CUBAS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:36,nome:"SOPHIA LACERDA ANDRADE",status:["FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:37,nome:"THAYLLA DUANNY VENANCIO SCAQUITO",status:["FEZ","FEZ","FEZ","FEZ"]},
+      {num:38,nome:"THAYS RODRIGUES DA SILVA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:39,nome:"VICTOR HENRIQUE BENVINDO",status:["FEZ","NÃO FEZ","FEZ","NÃO FEZ"]},
+      {num:40,nome:"MANOELLA DOS ANJOS SANTOS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ"]}
+    ]
+  },
+  "8ºAno B": {
+    atividades:[
+      {nome:"Aulas 1 e 2 - Macro e Micronutrientes",data:"04/05/2026",recurso:"Caderno"},
+      {nome:"Questões sobre Livro do Estudante",data:"07/05/2026",recurso:"Caderno"}
+    ],
+    alunos:[
+      {num:1,nome:"ANGELLO GABRIEL CUTOLO TEIXEIRA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:2,nome:"ARTHUR HENRIQUE MARQUES ENDRES",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:4,nome:"BIANCA CRISTINA DA SILVA SANTOS",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:5,nome:"BRAYAN DA SILVA FERREIRA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:6,nome:"BRAYAN DUARTE DA SILVA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:7,nome:"BRUNO LUIZ NASCIMENTO DA SILVA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:8,nome:"CRISTIANO MARQUES BATISTA DE SOUZA",status:["FEZ","FEZ"]},
+      {num:9,nome:"DANIEL RODRIGUES SANTOS DIAS",status:["NÃO FEZ","FEZ"]},
+      {num:10,nome:"DIEGO BARRIO NOVO AMARAL DE ANDRADE",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:11,nome:"ESTER CODINA DE JESUS",status:["FEZ","FEZ"]},
+      {num:12,nome:"FABRICIO LORENZO PARMA",status:["FEZ","FEZ"]},
+      {num:13,nome:"GABRIELA PAULINA FERREIRA MARTINS",status:["FEZ","NÃO FEZ"]},
+      {num:14,nome:"HYLLARY VICTORIA NERCIR DE FRANÇA",status:["FEZ","NÃO FEZ"]},
+      {num:15,nome:"ISAAC BONFIM VIDOTTO",status:["NÃO FEZ","FEZ"]},
+      {num:16,nome:"JHONAS KEYRRISON TROCATIS DA SILVA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:17,nome:"JULIA VITORIA SEVERA LINS",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:19,nome:"KESIA DOS SANTOS SOSTE",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:20,nome:"KHIARA DE OLIVEIRA SILVA",status:["NÃO FEZ","FEZ"]},
+      {num:21,nome:"LAURA BORGES AZEVEDO",status:["NÃO FEZ","FEZ"]},
+      {num:23,nome:"LUAN DANTAS NICOLUCCI",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:24,nome:"LUAN RIBEIRO SILVA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:25,nome:"MANUELA ANGELICA TRIANA DA SILVA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:26,nome:"MARCELO GOMES THOMAZ",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:27,nome:"MARCOS CELIO DE JESUS",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:28,nome:"MARIA EDUARDA MACHADO DE LIMA",status:["NÃO FEZ","FEZ"]},
+      {num:29,nome:"MATEUS DE JESUS JACINTO DOS SANTOS",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:31,nome:"PABLO HENRIQUE DUARTE DA SILVA",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:32,nome:"PAULO CESAR LAMBERT GONÇALVES",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:34,nome:"PIETRO MARTINS NOBRE",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:36,nome:"SOPHIA FRANCA DE CARVALHO",status:["NÃO FEZ","NÃO FEZ"]},
+      {num:37,nome:"VICTOR HUGO PRADO SANTOS DE BARROS",status:["NÃO FEZ","FEZ"]},
+      {num:40,nome:"WALLIF LEANDRO DE JESUS LESSA",status:["NÃO FEZ","NÃO FEZ"]}
+    ]
+  },
+  "9ºAno A": {
+    atividades:[
+      {nome:"Aula 1 - Célula e Organização dos Seres Vivos",data:"07/05/2026",recurso:"Caderno"},
+      {nome:"Livro pág. 113 e 114",data:"07/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Páginas 119",data:"08/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Aula 2 - O que é DNA?",data:"08/05/2026",recurso:"Caderno"},
+      {nome:"Aula 3",data:"14/05/2026",recurso:"Caderno"},
+      {nome:"Aula 3 - Célula unidade estrutural (parte 2)",data:"14/05/2026",recurso:"Livro do Estudante"}
+    ],
+    alunos:[
+      {num:1,nome:"ALICE CARVALHO",status:["FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:2,nome:"AMANDA PASSOS DE ALMEIDA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:4,nome:"ANA CLARA SOUSA DA COSTA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:5,nome:"ANA JULIA MENEZES DA SILVA",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:7,nome:"ARTHUR COHEN BARRETO",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:8,nome:"ARTHUR DAVI DE SOUZA FERNANDES",status:["NÃO FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:10,nome:"EDUARDA ALVES DE SOUZA",status:["FEZ","FEZ","NÃO FEZ","FEZ","FEZ","FEZ"]},
+      {num:11,nome:"EMANUEL ALVES OLIVEIRA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:12,nome:"ESTHER CRISTINE SILVA RIBEIRO",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:13,nome:"EVELLYN ALVES DA SILVA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:14,nome:"EVELLYN YASMIN TAVARES SILVA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:15,nome:"FELIPE DE SOUZA RODRIGUES",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:16,nome:"FERNANDA POLACHINI MAYER GOMES MARQUES",status:["FEZ","FEZ","FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:17,nome:"GUSTAVO AUGUSTO TOMBOLO REIS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:18,nome:"HENRIQUE ROCHA CARVALHAL",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:19,nome:"HINGRID SARAIVA DOS SANTOS",status:["FEZ","NÃO FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:20,nome:"IGOR MARTINS PEREIRA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:21,nome:"ISABELLA DOS SANTOS SALDANHA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:22,nome:"KAUANNY APARECIDA MALAQUIAS LIMA",status:["FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:23,nome:"KÉTHILY NAYARA DA SILVA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:24,nome:"LEONARDO DE AVELAR CARVALHO",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:25,nome:"LIVIA OLIVEIRA NASCIMENTO",status:["FEZ","FEZ","FEZ","FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:26,nome:"LOHRAN ROMUALDO MENDES DA SILVA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:27,nome:"LUANA KAROLINE MARTINS DE OLIVEIRA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:28,nome:"LUIS MIGUEL GONCALVES DA SILVA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:29,nome:"MANUELLA DE MORAES SOUZA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:30,nome:"MARCELA ROBERTO DE OLIVEIRA",status:["FEZ","NÃO FEZ","FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:33,nome:"MATHEUS TURCHETTO",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","FEZ","FEZ"]},
+      {num:34,nome:"MELISSA VICTORIA DE OLIVEIRA CARVALHO",status:["NÃO FEZ","NÃO FEZ","FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:35,nome:"MIGUEL MARTINS DE ASSIS",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:36,nome:"OMRAN RASEKH",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:37,nome:"PATRICIA SEGURA",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]},
+      {num:39,nome:"RAUL HENRIQUE CRUS BAPTISTA",status:["FEZ","FEZ","NÃO FEZ","FEZ","FEZ","FEZ"]},
+      {num:40,nome:"SARAH VITORIA ALVES OLIVEIRA",status:["NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ","NÃO FEZ"]},
+      {num:41,nome:"YURI GABRIEL DE MORAES PONGOLINO",status:["NÃO FEZ","NÃO FEZ","FEZ","FEZ","FEZ","NÃO FEZ"]},
+      {num:42,nome:"ZAYN AL ABIDIN RASULI",status:["FEZ","FEZ","FEZ","FEZ","FEZ","FEZ"]}
+    ]
+  },
+  "9ºAno B": {
+    atividades:[
+      {nome:"Aula 1 - Célula (Caderno)",data:"12/05/2026",recurso:"Caderno"},
+      {nome:"Aula 1 - Célula (Livro)",data:"12/05/2026",recurso:"Livro do Estudante"},
+      {nome:"Livro do Estudante",data:"13/05/2026",recurso:"Livro do Estudante"}
+    ],
+    alunos:[
+      {num:1,nome:"ALEJANDRO VIEIRA LIMA",status:["FEZ","NÃO FEZ",""]},
+      {num:2,nome:"ALLAN BEZERRA DE LIMA",status:["FEZ","NÃO FEZ","FEZ"]},
+      {num:3,nome:"ANA BEATRIZ RODRIGUES OLIVEIRA",status:["FEZ","FEZ",""]},
+      {num:4,nome:"ANA CLARA GONCALVES TORRES LOYOLA",status:["FEZ","FEZ","FEZ"]},
+      {num:5,nome:"ANNA BEATRIZ SANTIAGO DA SILVA",status:["FEZ","FEZ","FEZ"]},
+      {num:8,nome:"CHRISTOFER FELIPY SANTOS FONSECA",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:9,nome:"ELIAS SILVA DE LIMA",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:10,nome:"EVERTON HENRIQUE CARMO RODRIGUES",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:11,nome:"FABIO HENRIQUE DA SILVA",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:13,nome:"GABRIELA VITORIA SEVERA LINS",status:["FEZ","FEZ",""]},
+      {num:16,nome:"JENNYFER VITORIA BASILIO GOMES",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:17,nome:"JULIO CESAR ALVES DOS SANTOS",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:19,nome:"LEONARDO MENOIA",status:["FEZ","FEZ","FEZ"]},
+      {num:20,nome:"LORENA ALEXANDRE SANTOS DA SILVA",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:21,nome:"LUAN VENITES BALBINO",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:23,nome:"MARIA EDUARDA FELIX DA SILVA",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:24,nome:"MUNIQUE CRISTINA LUCAS",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:25,nome:"NICOLAS PENTEADO",status:["FEZ","NÃO FEZ",""]},
+      {num:26,nome:"NICOLY VITORIA SANTOS DE MENEZES",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:27,nome:"PAULO CELSO DA COSTA JUNIOR",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:29,nome:"PEDRO HENRIQUE CARLOS LIMA",status:["FEZ","NÃO FEZ",""]},
+      {num:30,nome:"PEDRO HENRIQUE MORAIS AMORIM",status:["FEZ","NÃO FEZ",""]},
+      {num:31,nome:"PEDRO HENRIQUE OLIVEIRA GOMES",status:["FEZ","NÃO FEZ",""]},
+      {num:32,nome:"PIETRO RODRIGUES MIRANDA",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:33,nome:"RAPHAELLY APARECIDA MARINHO DE OLIVEIRA",status:["NÃO FEZ","FEZ","FEZ"]},
+      {num:35,nome:"RENAN LEANDRO RODRIGUES VICENTE",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:36,nome:"RENATO SOUZA SANTOS",status:["NÃO FEZ","NÃO FEZ",""]},
+      {num:37,nome:"RODOLFO RAFAEL GOLZENLEUCHTER MORENO JUNIOR",status:["FEZ","NÃO FEZ",""]},
+      {num:38,nome:"SOPHIA MENEZES DE ARAUJO",status:["NÃO FEZ","NÃO FEZ","FEZ"]},
+      {num:40,nome:"THAYNA SEABRA DE OLIVEIRA DO NASCIMENTO",status:["NÃO FEZ","FEZ","FEZ"]},
+      {num:41,nome:"VITORIA MENEZES BRANDAO",status:["FEZ","FEZ",""]},
+      {num:42,nome:"WENDELL RAFAEL DE JESUS LESSA",status:["FEZ","NÃO FEZ",""]},
+      {num:43,nome:"WILHAN KENJI ANTONIO",status:["NÃO FEZ","NÃO FEZ","FEZ"]}
+    ]
+  }
+};
+
+// ═══════════════════════════════════════════════════
+//  THREE.JS 3D DONUT
+// ═══════════════════════════════════════════════════
+const threeScenes = {};
+
+function make3DDonut(containerId, fez, naofez, size = 160) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+
+  const total = fez + naofez || 1;
+  const pct = Math.round(fez / total * 100);
+
+  if (threeScenes[containerId]) {
+    const s = threeScenes[containerId];
+    s.renderer.dispose();
+    cancelAnimationFrame(s.rafId);
+    delete threeScenes[containerId];
+  }
+
+  const W = size, H = size;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
+  camera.position.set(0, 0, 4.2);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(W, H);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  container.appendChild(renderer.domElement);
+
+  // Ambient + Directional light
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dLight = new THREE.DirectionalLight(0x00d4ff, 1.2);
+  dLight.position.set(3, 5, 3);
+  scene.add(dLight);
+  const dLight2 = new THREE.DirectionalLight(0x10b981, 0.6);
+  dLight2.position.set(-3, -2, 2);
+  scene.add(dLight2);
+
+  const group = new THREE.Group();
+  scene.add(group);
+
+  function makeArc(angleStart, angleEnd, color, emissiveColor, yOffset = 0) {
+    const segments = 80;
+    const tube = 0.38;
+    const radius = 1.0;
+    const curve = new THREE.CatmullRomCurve3(
+      Array.from({ length: segments + 1 }, (_, i) => {
+        const a = angleStart + (angleEnd - angleStart) * (i / segments);
+        return new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0);
+      })
+    );
+    const geometry = new THREE.TubeGeometry(curve, segments, tube, 12, false);
+    const material = new THREE.MeshPhongMaterial({
+      color,
+      emissive: emissiveColor,
+      emissiveIntensity: 0.3,
+      shininess: 80,
+      specular: 0x444444,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.y = yOffset;
+    return mesh;
+  }
+
+  const TAU = Math.PI * 2;
+  const gap = 0.05;
+  const fazAngle = (fez / total) * TAU;
+  const naofezAngle = TAU - fazAngle;
+
+  if (fez > 0) {
+    group.add(makeArc(gap / 2, fazAngle - gap / 2, 0x10b981, 0x059669, 0.05));
+  }
+  if (naofez > 0) {
+    group.add(makeArc(fazAngle + gap / 2, TAU - gap / 2, 0xef4444, 0xb91c1c, -0.05));
+  }
+
+  // Tilt
+  group.rotation.x = 0.4;
+  group.rotation.z = -Math.PI / 2;
+
+  // Drag/auto-rotate
+  let isDragging = false, lastX = 0, velX = 0, autoRotate = true;
+  const el = renderer.domElement;
+
+  el.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; autoRotate = false; });
+  el.addEventListener('touchstart', e => { isDragging = true; lastX = e.touches[0].clientX; autoRotate = false; }, { passive: true });
+  window.addEventListener('mouseup', () => { isDragging = false; setTimeout(() => { autoRotate = true; }, 2000); });
+  window.addEventListener('touchend', () => { isDragging = false; setTimeout(() => { autoRotate = true; }, 2000); });
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    velX = e.clientX - lastX;
+    group.rotation.y += velX * 0.01;
+    lastX = e.clientX;
+  });
+  el.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    velX = e.touches[0].clientX - lastX;
+    group.rotation.y += velX * 0.01;
+    lastX = e.touches[0].clientX;
+  }, { passive: true });
+
+  let rafId;
+  function animate() {
+    rafId = requestAnimationFrame(animate);
+    if (autoRotate) group.rotation.y += 0.008;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  threeScenes[containerId] = { renderer, rafId };
+}
+
+// ═══════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════
+function calcTurmaStats(t) {
+  const d = TURMAS_DATA[t];
+  let fez = 0, naofez = 0;
+  d.alunos.forEach(a => a.status.forEach(s => {
+    if (s === 'FEZ') fez++;
+    else if (s === 'NÃO FEZ') naofez++;
+  }));
+  const total = fez + naofez;
+  return { fez, naofez, total, pct: total ? Math.round(fez / total * 100) : 0, alunos: d.alunos.length };
+}
+
+function calcAlunoStats(a) {
+  const fez = a.status.filter(s => s === 'FEZ').length;
+  const tot = a.status.filter(s => s !== '').length;
+  const pct = tot ? Math.round(fez / tot * 100) : 0;
+  const nota = calcNota(pct);
+  return { fez, naofez: tot - fez, tot, pct, nota };
+}
+
+// Nota de participação 0–10 baseada no percentual de realização
+function calcNota(pct) {
+  // Escala linear: 100% → 10,0 | 0% → 0,0
+  const raw = (pct / 100) * 10;
+  return Math.round(raw * 10) / 10; // 1 casa decimal
+}
+
+function notaColor(nota) {
+  if (nota >= 7)  return 'var(--fez)';
+  if (nota >= 5)  return 'var(--atencao)';
+  return 'var(--naofez)';
+}
+
+function notaLabel(nota) {
+  if (nota >= 9)  return 'Excelente';
+  if (nota >= 7)  return 'Bom';
+  if (nota >= 5)  return 'Regular';
+  if (nota >= 3)  return 'Insuficiente';
+  return 'Crítico';
+}
+
+function notaBadge(nota) {
+  const c = nota >= 7 ? 'badge-fez' : nota >= 5 ? 'badge-atencao' : 'badge-naofez';
+  const icon = nota >= 7 ? '✅' : nota >= 5 ? '⚠️' : '❌';
+  return `<span class="badge ${c}">${icon} ${notaLabel(nota)}</span>`;
+}
+
+function calcGlobal() {
+  let fez = 0, naofez = 0, totalAlunos = 0, totalAtivs = 0;
+  Object.keys(TURMAS_DATA).forEach(t => {
+    const s = calcTurmaStats(t);
+    fez += s.fez; naofez += s.naofez;
+    totalAlunos += s.alunos;
+    totalAtivs += TURMAS_DATA[t].atividades.length;
+  });
+  const pct = (fez + naofez) ? Math.round(fez / (fez + naofez) * 100) : 0;
+  return { fez, naofez, total: fez + naofez, pct, nota: calcNota(pct), totalAlunos, totalAtivs, turmas: Object.keys(TURMAS_DATA).length };
+}
+
+function pctColor(p) { return p >= 70 ? 'var(--fez)' : p >= 40 ? 'var(--atencao)' : 'var(--naofez)'; }
+function pctBadge(p) {
+  if (p >= 70) return '<span class="badge badge-fez">✅ Regular</span>';
+  if (p >= 40) return '<span class="badge badge-atencao">⚠️ Atenção</span>';
+  return '<span class="badge badge-naofez">❌ Crítico</span>';
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER DASHBOARD
+// ═══════════════════════════════════════════════════
+function renderDashboard() {
+  const g = calcGlobal();
+  const turmas = Object.keys(TURMAS_DATA);
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card c1"><div class="stat-glow"></div><div class="stat-label">Turmas</div><div class="stat-value">${g.turmas}</div><div class="stat-sub">2º Bim 2026</div></div>
+    <div class="stat-card c2"><div class="stat-glow"></div><div class="stat-label">Alunos</div><div class="stat-value">${g.totalAlunos}</div><div class="stat-sub">Matriculados</div></div>
+    <div class="stat-card c3"><div class="stat-glow"></div><div class="stat-label">Realizaram</div><div class="stat-value">${g.fez}</div><div class="stat-sub">${g.pct}% do total</div></div>
+    <div class="stat-card c4"><div class="stat-glow"></div><div class="stat-label">Não Realizaram</div><div class="stat-value">${g.naofez}</div><div class="stat-sub">${100 - g.pct}% do total</div></div>
+    <div class="stat-card c5"><div class="stat-glow"></div><div class="stat-label">Atividades</div><div class="stat-value">${g.totalAtivs}</div><div class="stat-sub">Total lançadas</div></div>
+    <div class="stat-card c3" style="border-top:none;position:relative">
+      <div class="stat-glow" style="background:var(--glow1)"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0;background:linear-gradient(90deg,var(--glow1),var(--glow2))"></div>
+      <div class="stat-label">Nota Média Geral</div>
+      <div class="stat-value" style="color:${notaColor(g.nota)}">${g.nota.toFixed(1)}</div>
+      <div class="stat-sub">Participação (0–10)</div>
+    </div>
+  `;
+
+  document.getElementById('charts-grid').innerHTML = turmas.map(t => {
+    const s = calcTurmaStats(t);
+    const cid = 'c3d_' + t.replace(/[^a-z0-9]/gi, '_');
+    return `
+      <div class="chart-card" onclick="selectTurmaChart('${t}', '${cid}')" id="cc_${cid}">
+        <div class="chart-card-title">${t}</div>
+        <div class="chart-card-sub">${s.alunos} alunos · ${TURMAS_DATA[t].atividades.length} ativs</div>
+        <div style="position:relative;display:inline-block;">
+          <div class="canvas3d" id="${cid}"></div>
+          <div class="chart-pct-overlay">
+            <div class="chart-pct-num">${s.pct}%</div>
+            <div class="chart-pct-lbl">REALIZARAM</div>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span><span class="legend-dot" style="background:var(--fez)"></span>${s.fez} FEZ</span>
+          <span><span class="legend-dot" style="background:var(--naofez)"></span>${s.naofez} NÃO</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  setTimeout(() => {
+    turmas.forEach(t => {
+      const s = calcTurmaStats(t);
+      const cid = 'c3d_' + t.replace(/[^a-z0-9]/gi, '_');
+      make3DDonut(cid, s.fez, s.naofez, 160);
+    });
+  }, 80);
+
+  // Ranking table
+  const sorted = turmas.map(t => ({ t, ...calcTurmaStats(t) })).sort((a, b) => b.pct - a.pct);
+  document.getElementById('ranking-tbody').innerHTML = sorted.map((r, i) => {
+    const nota = calcNota(r.pct);
+    return `
+    <tr>
+      <td style="font-weight:700;color:${i===0?'var(--warn)':i===1?'var(--muted)':i===2?'#cd7f32':'var(--text)'}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} ${r.t}</td>
+      <td style="color:var(--muted)">${r.alunos}</td>
+      <td>${r.fez} / ${r.total}</td>
+      <td>
+        <div class="pbar-wrap" style="min-width:120px">
+          <div class="pbar"><div class="pbar-fill" style="width:${r.pct}%;background:${pctColor(r.pct)}"></div></div>
+          <span style="font-size:12px;color:${pctColor(r.pct)};font-weight:700;font-family:var(--mono)">${r.pct}%</span>
+        </div>
+      </td>
+      <td>
+        <div class="nota-pill" style="background:${notaColor(nota)}22;border:1px solid ${notaColor(nota)}55;color:${notaColor(nota)}">
+          <span style="font-family:var(--mono);font-size:15px;font-weight:700">${nota.toFixed(1)}</span>
+          <span style="font-size:9px;opacity:.7"> /10</span>
+        </div>
+      </td>
+      <td>${pctBadge(r.pct)}</td>
+    </tr>`; }).join('');
+}
+
+// ── Click turma card → show turma modal ──
+function selectTurmaChart(t, cid) {
+  openTurmaModal(t);
+}
+
+function openTurmaModal(t) {
+  const s = calcTurmaStats(t);
+  document.getElementById('modal-turma-title').textContent = '📚 ' + t;
+  
+  let html = `
+    <div class="turma-block-header">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span class="badge badge-fez">✅ ${s.fez} FEZ</span>
+        <span class="badge badge-naofez">❌ ${s.naofez} NÃO FEZ</span>
+        <div class="nota-pill" style="background:${notaColor(calcNota(s.pct))}22;border:1px solid ${notaColor(calcNota(s.pct))}55;color:${notaColor(calcNota(s.pct))}">
+          <span style="font-size:10px;opacity:.7">Nota Média</span>
+          <span style="font-family:var(--mono);font-size:15px;font-weight:700">${calcNota(s.pct).toFixed(1)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Nº</th><th>Nome</th>
+          ${TURMAS_DATA[t].atividades.map((a,i)=>\`<th style="max-width:60px;font-size:9px" title="\${a.nome} · \${a.data}">\${i+1}<br><span style="color:var(--border2)">\${a.recurso.split(' ')[0]}</span></th>\`).join('')}
+          <th>Taxa</th><th>Nota</th>
+        </tr></thead>
+        <tbody>
+          ${TURMAS_DATA[t].alunos.map(a => {
+            const as = calcAlunoStats(a);
+            return \`<tr class="clickable-row" onclick="showAlunoDetail('\${t}','\${a.nome.replace(/'/g,"\\\\'")}')">
+              <td style="color:var(--muted)">\${a.num}</td>
+              <td style="font-weight:500;font-size:12px">\${a.nome}</td>
+              \${a.status.map((st,i) => \`<td style="text-align:center">
+                \${st==='FEZ'?'<span style="color:var(--fez);font-size:15px">✓</span>':st==='NÃO FEZ'?'<span style="color:var(--naofez);font-size:13px">✗</span>':'<span style="color:var(--border)">–</span>'}
+              </td>\`).join('')}
+              <td>
+                <div class="pbar-wrap">
+                  <div class="pbar" style="min-width:40px"><div class="pbar-fill" style="width:\${as.pct}%;background:\${pctColor(as.pct)}"></div></div>
+                  <span style="font-size:11px;color:\${pctColor(as.pct)};font-weight:700;font-family:var(--mono)">\${as.pct}%</span>
+                </div>
+              </td>
+              <td>
+                <div class="nota-pill" style="background:\${notaColor(as.nota)}22;border:1px solid \${notaColor(as.nota)}44;color:\${notaColor(as.nota)}">
+                  <span style="font-family:var(--mono);font-size:13px;font-weight:700">\${as.nota.toFixed(1)}</span>
+                </div>
+              </td>
+            </tr>\`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  document.getElementById('modal-turma-body').innerHTML = html;
+  document.getElementById('modal-turma-overlay').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER TURMAS
+// ═══════════════════════════════════════════════════
+function renderTurmas() {
+  const sel = document.getElementById('view-turma-dropdown');
+  const selected = sel ? sel.value : '';
+  
+  if (!selected) {
+    document.getElementById('turmas-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Selecione uma turma no menu acima para visualizar os alunos e atividades.</div>';
+    return;
+  }
+  
+  const turmas = [selected];
+  document.getElementById('turmas-content').innerHTML = turmas.map(t => {
+    const s = calcTurmaStats(t);
+    const mid = 'mini_' + t.replace(/[^a-z0-9]/gi, '_');
+    return `
+    <div class="turma-block">
+      <div class="turma-block-header">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <h3>📚 ${t}</h3>
+          <span class="badge badge-fez">✅ ${s.fez}</span>
+          <span class="badge badge-naofez">❌ ${s.naofez}</span>
+          <div class="nota-pill" style="background:${notaColor(calcNota(s.pct))}22;border:1px solid ${notaColor(calcNota(s.pct))}55;color:${notaColor(calcNota(s.pct))}">
+            <span style="font-size:10px;opacity:.7">Nota </span>
+            <span style="font-family:var(--mono);font-size:15px;font-weight:700">${calcNota(s.pct).toFixed(1)}</span>
+          </div>
+        </div>
+        <div style="position:relative">
+          <div class="turma-mini-chart" id="${mid}"></div>
+          <div class="pct-mini">${s.pct}%</div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Nº</th><th>Nome</th>
+              ${TURMAS_DATA[t].atividades.map((a,i)=>`<th style="max-width:60px;font-size:9px" title="${a.nome} · ${a.data}">${i+1}<br><span style="color:var(--border2)">${a.recurso.split(' ')[0]}</span></th>`).join('')}
+              <th>Taxa</th><th>Nota</th>
+            </tr></thead>
+            <tbody>
+              ${TURMAS_DATA[t].alunos.map(a => {
+                const as = calcAlunoStats(a);
+                return `<tr class="clickable-row" onclick="showAlunoDetail('${t}','${a.nome.replace(/'/g,"\\'")}')">
+                  <td style="color:var(--muted)">${a.num}</td>
+                  <td style="font-weight:500;font-size:12px">${a.nome}</td>
+                  ${a.status.map((s,i) => `<td style="text-align:center">
+                    ${s==='FEZ'?'<span style="color:var(--fez);font-size:15px">✓</span>':s==='NÃO FEZ'?'<span style="color:var(--naofez);font-size:13px">✗</span>':'<span style="color:var(--border)">–</span>'}
+                  </td>`).join('')}
+                  <td>
+                    <div class="pbar-wrap">
+                      <div class="pbar" style="min-width:40px"><div class="pbar-fill" style="width:${as.pct}%;background:${pctColor(as.pct)}"></div></div>
+                      <span style="font-size:11px;color:${pctColor(as.pct)};font-weight:700;font-family:var(--mono)">${as.pct}%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="nota-pill" style="background:${notaColor(as.nota)}22;border:1px solid ${notaColor(as.nota)}44;color:${notaColor(as.nota)}">
+                      <span style="font-family:var(--mono);font-size:13px;font-weight:700">${as.nota.toFixed(1)}</span>
+                    </div>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  setTimeout(() => {
+    turmas.forEach(t => {
+      const s = calcTurmaStats(t);
+      const mid = 'mini_' + t.replace(/[^a-z0-9]/gi, '_');
+      make3DDonut(mid, s.fez, s.naofez, 70);
+    });
+  }, 80);
+}
+
+// ═══════════════════════════════════════════════════
+//  SHOW ALUNO DETAIL (3D individual)
+// ═══════════════════════════════════════════════════
+function showAlunoDetail(turma, nome) {
+  const td = TURMAS_DATA[turma];
+  const aluno = td.alunos.find(a => a.nome === nome);
+  if (!aluno) return;
+  const as = calcAlunoStats(aluno);
+
+  document.getElementById('modal-aluno-title').textContent = '👤 ' + aluno.nome;
+  
+  const ativItems = td.atividades.map((atv, i) => {
+    const s = aluno.status[i] || '';
+    const cls = s === 'FEZ' ? 'fez' : s === 'NÃO FEZ' ? 'naofez' : 'vazio';
+    const icon = s === 'FEZ' ? '✓' : s === 'NÃO FEZ' ? '✗' : '–';
+    const label = s === 'FEZ' ? 'REALIZADA' : s === 'NÃO FEZ' ? 'NÃO REALIZADA' : 'SEM REGISTRO';
+    return `
+      <div class="ativ-item">
+        <div class="ativ-num">${i + 1}</div>
+        <div class="ativ-icon ${cls}">${icon}</div>
+        <div class="ativ-body">
+          <div class="ativ-nome">${atv.nome}</div>
+          <div class="ativ-meta">📅 ${atv.data} &nbsp;·&nbsp; 📚 ${atv.recurso}</div>
+        </div>
+        <div class="ativ-status-text ${cls}">${label}</div>
+      </div>`;
+  }).join('');
+
+  let html = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <span class="badge badge-turma">${turma}</span>
+      <span class="badge badge-fez">✅ ${as.fez} realizadas</span>
+      <span class="badge badge-naofez">❌ ${as.naofez} não realizadas</span>
+      <span style="font-family:var(--mono);font-size:12px;color:${pctColor(as.pct)};font-weight:700">${as.pct}%</span>
+      <div class="nota-pill" style="background:${notaColor(as.nota)}22;border:1px solid ${notaColor(as.nota)}55;color:${notaColor(as.nota)}">
+        <span style="font-size:10px;opacity:.8">Nota </span>
+        <span style="font-family:var(--mono);font-size:15px;font-weight:700">${as.nota.toFixed(1)}</span>
+        <span style="font-size:9px;opacity:.7"> · ${notaLabel(as.nota)}</span>
+      </div>
+    </div>
+    <div class="aluno-ativs-title" style="margin-top:20px;">Atividades Individuais — ${td.atividades.length} no total</div>
+    <div class="ativ-list">${ativItems}</div>
+  `;
+  
+  document.getElementById('modal-aluno-body').innerHTML = html;
+  document.getElementById('modal-aluno-overlay').classList.add('open');
+}
+
+function closeAlunoDetail() {
+  document.getElementById('modal-aluno-overlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER ALUNOS
+// ═══════════════════════════════════════════════════
+function renderAlunos() {
+  const filtro = document.getElementById('filtro-turma').value;
+  const search = document.getElementById('search-aluno').value.toLowerCase();
+  let rows = '';
+  Object.keys(TURMAS_DATA).forEach(t => {
+    if (filtro && t !== filtro) return;
+    TURMAS_DATA[t].alunos.forEach(a => {
+      if (search && !a.nome.toLowerCase().includes(search)) return;
+      const as = calcAlunoStats(a);
+      const rowId = 'arow_' + t.replace(/[^a-z0-9]/gi,'_') + '_' + a.num;
+      const detId = 'adet_' + t.replace(/[^a-z0-9]/gi,'_') + '_' + a.num;
+      rows += `
+        <tr class="clickable-row" onclick="showAlunoDetail('${t}','${a.nome.replace(/'/g,"\\'")}')">
+          <td style="color:var(--muted)">${a.num}</td>
+          <td style="font-weight:600">${a.nome}</td>
+          <td><span class="badge badge-turma">${t}</span></td>
+          <td style="font-family:var(--mono)">${as.fez} / ${as.tot}</td>
+          <td><div class="pbar-wrap"><div class="pbar" style="min-width:70px"><div class="pbar-fill" style="width:${as.pct}%;background:${pctColor(as.pct)}"></div></div><span style="font-size:11px;color:${pctColor(as.pct)};font-weight:700;font-family:var(--mono)">${as.pct}%</span></div></td>
+          <td>
+            <div class="nota-pill" style="background:${notaColor(as.nota)}22;border:1px solid ${notaColor(as.nota)}55;color:${notaColor(as.nota)}">
+              <span style="font-family:var(--mono);font-size:14px;font-weight:700">${as.nota.toFixed(1)}</span>
+            </div>
+          </td>
+          <td>${pctBadge(as.pct)}</td>
+        </tr>`;
+    });
+  });
+  document.getElementById('tbody-alunos').innerHTML = rows || `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:40px">Nenhum aluno encontrado</td></tr>`;
+}
+
+let openAlunoRow = null;
+
+// ═══════════════════════════════════════════════════
+//  RENDER ATIVIDADES
+// ═══════════════════════════════════════════════════
+function renderAtividades() {
+  const filtro = document.getElementById('filtro-ativ-turma').value;
+  let rows = '';
+  Object.keys(TURMAS_DATA).forEach(t => {
+    if (filtro && t !== filtro) return;
+    TURMAS_DATA[t].atividades.forEach((atv, idx) => {
+      const fez = TURMAS_DATA[t].alunos.filter(a => a.status[idx] === 'FEZ').length;
+      const tot = TURMAS_DATA[t].alunos.filter(a => a.status[idx] !== '').length;
+      const pct = tot ? Math.round(fez / tot * 100) : 0;
+      rows += `<tr>
+        <td><span class="badge badge-turma">${t}</span></td>
+        <td style="color:var(--muted);font-family:var(--mono);font-size:11px">${atv.data}</td>
+        <td style="font-weight:500">${atv.nome}</td>
+        <td style="color:var(--muted);font-size:11px">${atv.recurso}</td>
+        <td style="font-family:var(--mono)">${fez}/${tot}</td>
+        <td><div class="pbar-wrap"><div class="pbar" style="min-width:60px"><div class="pbar-fill" style="width:${pct}%;background:${pctColor(pct)}"></div></div><span style="font-size:11px;color:${pctColor(pct)};font-weight:700;font-family:var(--mono)">${pct}%</span></div></td>
+      </tr>`;
+    });
+  });
+  document.getElementById('tbody-atividades').innerHTML = rows;
+}
+
+// ═══════════════════════════════════════════════════
+//  SELECTS
+// ═══════════════════════════════════════════════════
+function populateSelects() {
+  const turmas = Object.keys(TURMAS_DATA);
+  ['filtro-turma','filtro-ativ-turma','f-turma','view-turma-dropdown'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const ph = sel.innerHTML;
+    sel.innerHTML = ph.includes('Selecione') ? '<option value="">— Selecione —</option>' : '<option value="">Todas as turmas</option>';
+    turmas.forEach(t => {
+      const op = document.createElement('option');
+      op.value = t; op.textContent = t;
+      sel.appendChild(op);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════
+let selStatus = '';
+document.getElementById('f-turma').addEventListener('change', function() {
+  const t = this.value;
+  const sel = document.getElementById('f-aluno');
+  sel.innerHTML = '<option value="">— Selecione o aluno —</option>';
+  if (t && TURMAS_DATA[t]) {
+    TURMAS_DATA[t].alunos.forEach(a => {
+      const op = document.createElement('option');
+      op.value = a.nome; op.textContent = `${a.num} · ${a.nome}`;
+      sel.appendChild(op);
+    });
+  }
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
+function openModal() {
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
+}
+function closeModal(id = 'modal-overlay') {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-overlay') {
+    selStatus = '';
+    updateStatusBtns();
+  }
+}
+function closeModalOut(e, id = 'modal-overlay') { if (e.target.id === id) closeModal(id); }
+function selectStatus(s) { selStatus = s; updateStatusBtns(); }
+function updateStatusBtns() {
+  document.getElementById('sbtn-fez').className = 'status-btn' + (selStatus === 'FEZ' ? ' sel-fez' : '');
+  document.getElementById('sbtn-naofez').className = 'status-btn' + (selStatus === 'NÃO FEZ' ? ' sel-naofez' : '');
+}
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
-  );
-});
+// ═══════════════════════════════════════════════════
+//  SUBMIT (local + Google Sheets via Apps Script)
+// ═══════════════════════════════════════════════════
+async function submitActivity() {
+  const turma    = document.getElementById('f-turma').value;
+  const aluno    = document.getElementById('f-aluno').value;
+  const data     = document.getElementById('f-data').value;
+  const recurso  = document.getElementById('f-recurso').value;
+  const atividade = document.getElementById('f-atividade').value.trim();
+  const status   = selStatus;
 
+  if (!turma || !aluno || !data || !atividade || !status) {
+    toast('⚠️ Preencha todos os campos', 'error'); return;
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.textContent = '⏳ Salvando…'; btn.disabled = true;
+
+  // Atualiza local
+  const td = TURMAS_DATA[turma];
+  let idx = td.atividades.findIndex(a => a.nome === atividade);
+  if (idx === -1) {
+    td.atividades.push({ nome: atividade, data: data.split('-').reverse().join('/'), recurso });
+    idx = td.atividades.length - 1;
+  }
+  const alunoObj = td.alunos.find(a => a.nome === aluno);
+  if (alunoObj) {
+    while (alunoObj.status.length <= idx) alunoObj.status.push('');
+    alunoObj.status[idx] = status;
+  }
+
+  // Tenta enviar para Google Sheets
+  let sheetOk = false;
+  if (APPS_SCRIPT_URL) {
+    try {
+      setSyncState('syncing');
+      const payload = { turma, aluno, data: data.split('-').reverse().join('/'), recurso, atividade, status };
+      const resp = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await resp.json();
+      sheetOk = result.success;
+      setSyncState(sheetOk ? 'ok' : 'error');
+    } catch (e) {
+      setSyncState('error');
+      // Salva pendente no localStorage
+      savePending({ turma, aluno, data, recurso, atividade, status });
+    }
+  } else {
+    savePending({ turma, aluno, data, recurso, atividade, status });
+  }
+
+  btn.textContent = '💾 Salvar'; btn.disabled = false;
+  toast(sheetOk ? '✅ Lançado e salvo na planilha!' : '💾 Salvo localmente — sincronize depois', sheetOk ? 'success' : 'info');
+  closeModal();
+  refreshAll();
+}
+
+function savePending(entry) {
+  const pending = JSON.parse(localStorage.getItem('prv_pending') || '[]');
+  pending.push({ ...entry, ts: Date.now() });
+  localStorage.setItem('prv_pending', JSON.stringify(pending));
+}
+
+// ═══════════════════════════════════════════════════
+//  SYNC TO SHEETS
+// ═══════════════════════════════════════════════════
+async function syncToSheets() {
+  if (!APPS_SCRIPT_URL) {
+    // Abre a planilha para edição manual
+    toast('ℹ️ Abrindo planilha no Google Sheets…', 'info');
+    window.open(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`, '_blank');
+    return;
+  }
+  const pending = JSON.parse(localStorage.getItem('prv_pending') || '[]');
+  if (!pending.length) { toast('✅ Nada pendente para sincronizar', 'success'); return; }
+
+  setSyncState('syncing');
+  let ok = 0;
+  for (const entry of pending) {
+    try {
+      const resp = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+      });
+      const r = await resp.json();
+      if (r.success) ok++;
+    } catch (e) { break; }
+  }
+  if (ok === pending.length) {
+    localStorage.removeItem('prv_pending');
+    setSyncState('ok');
+    toast(`✅ ${ok} registros sincronizados com sucesso!`, 'success');
+  } else {
+    setSyncState('error');
+    toast(`⚠️ ${ok}/${pending.length} sincronizados`, 'error');
+  }
+}
+
+function setSyncState(s) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot' + (s !== 'ok' ? ' ' + s : '');
+  lbl.textContent = s === 'ok' ? 'Online' : s === 'syncing' ? 'Sincronizando…' : 'Erro';
+}
+
+// ═══════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════
+function switchTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const tab = el || document.querySelector(`.tab[onclick*="${id}"]`);
+  if (tab) tab.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  if (id === 'turmas') renderTurmas();
+}
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+let toastTimer;
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.className = ''; }, 3500);
+}
+
+// ═══════════════════════════════════════════════════
+//  OFFLINE DETECTION
+// ═══════════════════════════════════════════════════
+function checkOnline() {
+  const banner = document.getElementById('offline-banner');
+  const dot = document.getElementById('sync-dot');
+  if (navigator.onLine) {
+    banner.classList.remove('show');
+    dot.classList.remove('error');
+  } else {
+    banner.classList.add('show');
+    dot.classList.add('error');
+    document.getElementById('sync-label').textContent = 'Offline';
+  }
+}
+window.addEventListener('online', checkOnline);
+window.addEventListener('offline', checkOnline);
+
+// ═══════════════════════════════════════════════════
+//  PWA INSTALL
+// ═══════════════════════════════════════════════════
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  document.getElementById('install-prompt').classList.add('show');
+});
+function installApp() {
+  if (deferredInstall) {
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(() => { hideInstall(); deferredInstall = null; });
+  }
+}
+function hideInstall() { document.getElementById('install-prompt').classList.remove('show'); }
+window.addEventListener('appinstalled', () => { hideInstall(); toast('📱 App instalado com sucesso!', 'success'); });
+
+// ═══════════════════════════════════════════════════
+//  SERVICE WORKER
+// ═══════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  populateSelects();
+  renderDashboard();
+  renderAlunos();
+  renderAtividades();
+  checkOnline();
+});
+</script>
+
+<!-- ══ GOOGLE APPS SCRIPT INTEGRATION GUIDE ══
+Para ativar o envio automático para o Google Sheets:
+
+1. Abra sua planilha:
+   https://docs.google.com/spreadsheets/d/1CzqPjjGlniT16bAGYI5T9KGfgUvKVMRsgdyHX2KC6gA/edit
+
+2. Menu: Extensões → Apps Script
+
+3. Cole este código:
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(data.turma);
+    if (!sheet) sheet = ss.insertSheet(data.turma);
+
+    // Encontra ou cria coluna da atividade
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    let col = headers.indexOf(data.atividade) + 1;
+    if (col === 0) {
+      col = sheet.getLastColumn() + 1;
+      sheet.getRange(1, col).setValue(data.atividade);
+      sheet.getRange(2, col).setValue(data.data);
+      sheet.getRange(3, col).setValue(data.recurso);
+    }
+
+    // Encontra linha do aluno
+    const alunoCol = sheet.getRange('A:A').getValues();
+    let row = -1;
+    for (let i = 3; i < alunoCol.length; i++) {
+      if (alunoCol[i][0] === data.aluno) { row = i + 1; break; }
+    }
+    if (row === -1) {
+      row = Math.max(sheet.getLastRow() + 1, 4);
+      sheet.getRange(row, 1).setValue(data.aluno);
+    }
+
+    sheet.getRange(row, col).setValue(data.status);
+
+    return ContentService.createTextOutput(
+      JSON.stringify({ success: true })
+    ).setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ success: false, error: err.message })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+4. Implantar → Novo implantamento → Aplicativo da Web
+   - Executar como: Eu (sua conta)
+   - Quem tem acesso: Qualquer pessoa
+5. Copie a URL e cole em APPS_SCRIPT_URL no início do script
+═══════════════════════════════════════════════════ -->
+</body>
+</html>
