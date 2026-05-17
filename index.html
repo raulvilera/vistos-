@@ -758,6 +758,28 @@ tbody tr.clickable-row { cursor:pointer; }
   </div>
 </div>
 
+<!-- MODAL ALUNO -->
+<div class="modal-overlay" id="modal-aluno-overlay" style="z-index:950;" onclick="closeModalOut(event, 'modal-aluno-overlay')">
+  <div class="modal" id="modal-aluno-content">
+    <div class="modal-head">
+      <h2 id="modal-aluno-title">👤 Detalhes do Aluno</h2>
+      <button class="modal-close" onclick="closeModal('modal-aluno-overlay')">✕</button>
+    </div>
+    <div id="modal-aluno-body"></div>
+  </div>
+</div>
+
+<!-- MODAL TURMA -->
+<div class="modal-overlay" id="modal-turma-overlay" onclick="closeModalOut(event, 'modal-turma-overlay')">
+  <div class="modal" style="max-width:800px;">
+    <div class="modal-head">
+      <h2 id="modal-turma-title">📚 Turma</h2>
+      <button class="modal-close" onclick="closeModal('modal-turma-overlay')">✕</button>
+    </div>
+    <div id="modal-turma-body"></div>
+  </div>
+</div>
+
 <!-- INSTALL PROMPT -->
 <div id="install-prompt">
   <h3>📲 Instalar App</h3>
@@ -777,7 +799,7 @@ tbody tr.clickable-row { cursor:pointer; }
 //  publicado em Extensões → Apps Script → Implantar
 // ═══════════════════════════════════════════════════
 const SHEET_ID   = '1CzqPjjGlniT16bAGYI5T9KGfgUvKVMRsgdyHX2KC6gA';
-const APPS_SCRIPT_URL = ''; // Cole aqui a URL do Web App após publicar
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9EQehqf6aut8saiBBWoI2_rjyOwsvLC9MhkXRkMqYLZU-rrnHHCvQ1wATOe9u7LL_/exec';
 
 // ═══════════════════════════════════════════════════
 //  DADOS
@@ -1455,13 +1477,61 @@ function renderDashboard() {
     </tr>`; }).join('');
 }
 
-// ── Click turma card → show aluno list below ──
-let selectedTurma = null;
+// ── Click turma card → show turma modal ──
 function selectTurmaChart(t, cid) {
-  document.querySelectorAll('.chart-card').forEach(c => c.classList.remove('active-turma'));
-  document.getElementById('cc_' + cid).classList.add('active-turma');
-  selectedTurma = t;
-  document.getElementById('aluno-detail').classList.remove('show');
+  openTurmaModal(t);
+}
+
+function openTurmaModal(t) {
+  const s = calcTurmaStats(t);
+  document.getElementById('modal-turma-title').textContent = '📚 ' + t;
+  
+  let html = `
+    <div class="turma-block-header">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span class="badge badge-fez">✅ ${s.fez} FEZ</span>
+        <span class="badge badge-naofez">❌ ${s.naofez} NÃO FEZ</span>
+        <div class="nota-pill" style="background:${notaColor(calcNota(s.pct))}22;border:1px solid ${notaColor(calcNota(s.pct))}55;color:${notaColor(calcNota(s.pct))}">
+          <span style="font-size:10px;opacity:.7">Nota Média</span>
+          <span style="font-family:var(--mono);font-size:15px;font-weight:700">${calcNota(s.pct).toFixed(1)}</span>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Nº</th><th>Nome</th>
+          ${TURMAS_DATA[t].atividades.map((a,i)=>\`<th style="max-width:60px;font-size:9px" title="\${a.nome} · \${a.data}">\${i+1}<br><span style="color:var(--border2)">\${a.recurso.split(' ')[0]}</span></th>\`).join('')}
+          <th>Taxa</th><th>Nota</th>
+        </tr></thead>
+        <tbody>
+          ${TURMAS_DATA[t].alunos.map(a => {
+            const as = calcAlunoStats(a);
+            return \`<tr class="clickable-row" onclick="showAlunoDetail('\${t}','\${a.nome.replace(/'/g,"\\\\'")}')">
+              <td style="color:var(--muted)">\${a.num}</td>
+              <td style="font-weight:500;font-size:12px">\${a.nome}</td>
+              \${a.status.map((st,i) => \`<td style="text-align:center">
+                \${st==='FEZ'?'<span style="color:var(--fez);font-size:15px">✓</span>':st==='NÃO FEZ'?'<span style="color:var(--naofez);font-size:13px">✗</span>':'<span style="color:var(--border)">–</span>'}
+              </td>\`).join('')}
+              <td>
+                <div class="pbar-wrap">
+                  <div class="pbar" style="min-width:40px"><div class="pbar-fill" style="width:\${as.pct}%;background:\${pctColor(as.pct)}"></div></div>
+                  <span style="font-size:11px;color:\${pctColor(as.pct)};font-weight:700;font-family:var(--mono)">\${as.pct}%</span>
+                </div>
+              </td>
+              <td>
+                <div class="nota-pill" style="background:\${notaColor(as.nota)}22;border:1px solid \${notaColor(as.nota)}44;color:\${notaColor(as.nota)}">
+                  <span style="font-family:var(--mono);font-size:13px;font-weight:700">\${as.nota.toFixed(1)}</span>
+                </div>
+              </td>
+            </tr>\`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  document.getElementById('modal-turma-body').innerHTML = html;
+  document.getElementById('modal-turma-overlay').classList.add('open');
 }
 
 // ═══════════════════════════════════════════════════
@@ -1552,22 +1622,8 @@ function showAlunoDetail(turma, nome) {
   if (!aluno) return;
   const as = calcAlunoStats(aluno);
 
-  document.getElementById('aluno-detail-name').textContent = aluno.nome;
-  document.getElementById('aluno-detail-turma').textContent = turma;
-
-  document.getElementById('aluno-detail-stats').innerHTML = `
-    <div class="aluno-stat"><div class="aluno-stat-val" style="color:var(--fez)">${as.fez}</div><div class="aluno-stat-lbl">Realizadas</div></div>
-    <div class="aluno-stat"><div class="aluno-stat-val" style="color:var(--naofez)">${as.naofez}</div><div class="aluno-stat-lbl">Não realizadas</div></div>
-    <div class="aluno-stat"><div class="aluno-stat-val" style="color:${pctColor(as.pct)}">${as.pct}%</div><div class="aluno-stat-lbl">Taxa</div></div>
-    <div class="aluno-stat"><div class="aluno-stat-val" style="color:var(--muted)">${as.tot}</div><div class="aluno-stat-lbl">Total</div></div>
-    <div class="aluno-stat" style="padding:8px 16px;background:${notaColor(as.nota)}18;border:1px solid ${notaColor(as.nota)}44;border-radius:10px">
-      <div class="aluno-stat-val" style="color:${notaColor(as.nota)};font-size:28px">${as.nota.toFixed(1)}</div>
-      <div class="aluno-stat-lbl">Nota de Participação</div>
-      <div style="font-size:9px;color:${notaColor(as.nota)};font-weight:700;letter-spacing:.5px;margin-top:2px">${notaLabel(as.nota).toUpperCase()}</div>
-    </div>
-  `;
-
-  // Atividades discriminadas individualmente
+  document.getElementById('modal-aluno-title').textContent = '👤 ' + aluno.nome;
+  
   const ativItems = td.atividades.map((atv, i) => {
     const s = aluno.status[i] || '';
     const cls = s === 'FEZ' ? 'fez' : s === 'NÃO FEZ' ? 'naofez' : 'vazio';
@@ -1585,22 +1641,28 @@ function showAlunoDetail(turma, nome) {
       </div>`;
   }).join('');
 
-  document.getElementById('aluno-ativs-section').innerHTML = `
-    <div class="aluno-ativs-title">Atividades Individuais — ${td.atividades.length} no total &nbsp;·&nbsp; <span style="color:${notaColor(as.nota)}">Nota: ${as.nota.toFixed(1)}</span></div>
+  let html = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+      <span class="badge badge-turma">${turma}</span>
+      <span class="badge badge-fez">✅ ${as.fez} realizadas</span>
+      <span class="badge badge-naofez">❌ ${as.naofez} não realizadas</span>
+      <span style="font-family:var(--mono);font-size:12px;color:${pctColor(as.pct)};font-weight:700">${as.pct}%</span>
+      <div class="nota-pill" style="background:${notaColor(as.nota)}22;border:1px solid ${notaColor(as.nota)}55;color:${notaColor(as.nota)}">
+        <span style="font-size:10px;opacity:.8">Nota </span>
+        <span style="font-family:var(--mono);font-size:15px;font-weight:700">${as.nota.toFixed(1)}</span>
+        <span style="font-size:9px;opacity:.7"> · ${notaLabel(as.nota)}</span>
+      </div>
+    </div>
+    <div class="aluno-ativs-title" style="margin-top:20px;">Atividades Individuais — ${td.atividades.length} no total</div>
     <div class="ativ-list">${ativItems}</div>
   `;
-
-  const det = document.getElementById('aluno-detail');
-  det.classList.add('show');
-  det.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-  // 3D chart for this student
-  make3DDonut('aluno-3d-wrap', as.fez, as.naofez, 180);
+  
+  document.getElementById('modal-aluno-body').innerHTML = html;
+  document.getElementById('modal-aluno-overlay').classList.add('open');
 }
 
 function closeAlunoDetail() {
-  document.getElementById('aluno-detail').classList.remove('show');
-  document.querySelectorAll('.chart-card').forEach(c => c.classList.remove('active-turma'));
+  document.getElementById('modal-aluno-overlay').classList.remove('open');
 }
 
 // ═══════════════════════════════════════════════════
@@ -1618,7 +1680,7 @@ function renderAlunos() {
       const rowId = 'arow_' + t.replace(/[^a-z0-9]/gi,'_') + '_' + a.num;
       const detId = 'adet_' + t.replace(/[^a-z0-9]/gi,'_') + '_' + a.num;
       rows += `
-        <tr class="clickable-row" onclick="toggleAlunoRow('${rowId}','${detId}','${t}','${a.nome.replace(/'/g,"\\'")}')">
+        <tr class="clickable-row" onclick="showAlunoDetail('${t}','${a.nome.replace(/'/g,"\\'")}')">
           <td style="color:var(--muted)">${a.num}</td>
           <td style="font-weight:600">${a.nome}</td>
           <td><span class="badge badge-turma">${t}</span></td>
@@ -1630,12 +1692,6 @@ function renderAlunos() {
             </div>
           </td>
           <td>${pctBadge(as.pct)}</td>
-          <td style="color:var(--muted);font-size:16px" id="${rowId}-chevron">▼</td>
-        </tr>
-        <tr id="${detId}" style="display:none">
-          <td colspan="8" style="padding:0">
-            <div class="aluno-inline-detail" id="${detId}-inner"></div>
-          </td>
         </tr>`;
     });
   });
@@ -1643,75 +1699,6 @@ function renderAlunos() {
 }
 
 let openAlunoRow = null;
-
-function toggleAlunoRow(rowId, detId, turma, nome) {
-  const det = document.getElementById(detId);
-  const chevron = document.getElementById(rowId + '-chevron');
-  const inner = document.getElementById(detId + '-inner');
-
-  // Fecha o anterior se diferente
-  if (openAlunoRow && openAlunoRow !== detId) {
-    const prev = document.getElementById(openAlunoRow);
-    const prevRowId = openAlunoRow.replace('adet_', 'arow_');
-    const prevChevron = document.getElementById(prevRowId + '-chevron');
-    if (prev) prev.style.display = 'none';
-    if (prevChevron) prevChevron.textContent = '▼';
-  }
-
-  const isOpen = det.style.display !== 'none';
-  if (isOpen) {
-    det.style.display = 'none';
-    chevron.textContent = '▼';
-    openAlunoRow = null;
-    return;
-  }
-
-  // Monta o conteúdo das atividades
-  const td = TURMAS_DATA[turma];
-  const aluno = td.alunos.find(a => a.nome === nome);
-  if (!aluno) return;
-  const as = calcAlunoStats(aluno);
-
-  const ativItems = td.atividades.map((atv, i) => {
-    const s = aluno.status[i] || '';
-    const cls = s === 'FEZ' ? 'fez' : s === 'NÃO FEZ' ? 'naofez' : 'vazio';
-    const icon = s === 'FEZ' ? '✓' : s === 'NÃO FEZ' ? '✗' : '–';
-    const label = s === 'FEZ' ? 'REALIZADA' : s === 'NÃO FEZ' ? 'NÃO REALIZADA' : 'SEM REGISTRO';
-    return `
-      <div class="ativ-item">
-        <div class="ativ-num">${i + 1}</div>
-        <div class="ativ-icon ${cls}">${icon}</div>
-        <div class="ativ-body">
-          <div class="ativ-nome">${atv.nome}</div>
-          <div class="ativ-meta">📅 ${atv.data} &nbsp;·&nbsp; 📚 ${atv.recurso}</div>
-        </div>
-        <div class="ativ-status-text ${cls}">${label}</div>
-      </div>`;
-  }).join('');
-
-  inner.innerHTML = `
-    <div style="padding:14px 16px 16px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-        <div style="font-size:13px;font-weight:700;color:var(--glow1)">${aluno.nome}</div>
-        <span class="badge badge-fez">✅ ${as.fez} realizadas</span>
-        <span class="badge badge-naofez">❌ ${as.naofez} não realizadas</span>
-        <span style="font-family:var(--mono);font-size:12px;color:${pctColor(as.pct)};font-weight:700">${as.pct}%</span>
-        <div class="nota-pill" style="background:${notaColor(as.nota)}22;border:1px solid ${notaColor(as.nota)}55;color:${notaColor(as.nota)}">
-          <span style="font-size:10px;opacity:.8">Nota </span>
-          <span style="font-family:var(--mono);font-size:15px;font-weight:700">${as.nota.toFixed(1)}</span>
-          <span style="font-size:9px;opacity:.7"> · ${notaLabel(as.nota)}</span>
-        </div>
-      </div>
-      <div class="ativ-list">${ativItems}</div>
-    </div>`;
-
-  det.style.display = 'table-row';
-  chevron.textContent = '▲';
-  openAlunoRow = detId;
-
-  // Scroll suave
-  det.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
 
 // ═══════════════════════════════════════════════════
 //  RENDER ATIVIDADES
@@ -1777,12 +1764,14 @@ function openModal() {
   document.getElementById('modal-overlay').classList.add('open');
   document.getElementById('f-data').value = new Date().toISOString().split('T')[0];
 }
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
-  selStatus = '';
-  updateStatusBtns();
+function closeModal(id = 'modal-overlay') {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'modal-overlay') {
+    selStatus = '';
+    updateStatusBtns();
+  }
 }
-function closeModalOut(e) { if (e.target.id === 'modal-overlay') closeModal(); }
+function closeModalOut(e, id = 'modal-overlay') { if (e.target.id === id) closeModal(id); }
 function selectStatus(s) { selStatus = s; updateStatusBtns(); }
 function updateStatusBtns() {
   document.getElementById('sbtn-fez').className = 'status-btn' + (selStatus === 'FEZ' ? ' sel-fez' : '');
