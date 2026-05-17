@@ -2000,9 +2000,10 @@ function doGet(e) {
       const activities = [];
       const alunos = [];
 
-      if (lastCol >= 2) {
-        const headerData = sheet.getRange(1, 2, 3, lastCol - 1).getValues();
-        for (let col = 0; col < lastCol - 1; col++) {
+      // Coluna A = Número, Coluna B = Nome. As atividades começam na Coluna C (3)
+      if (lastCol >= 3) {
+        const headerData = sheet.getRange(1, 3, 3, lastCol - 2).getValues();
+        for (let col = 0; col < lastCol - 2; col++) {
           activities.push({
             nome: headerData[0][col] || ("Atividade " + (col + 1)),
             data: headerData[1][col] ? (headerData[1][col] instanceof Date ? Utilities.formatDate(headerData[1][col], Session.getScriptTimeZone(), "dd/MM/yyyy") : String(headerData[1][col])) : "",
@@ -2014,15 +2015,17 @@ function doGet(e) {
       if (lastRow >= 4) {
         const rows = sheet.getRange(4, 1, lastRow - 3, lastCol).getValues();
         rows.forEach((row, idx) => {
-          const nome = row[0];
-          if (!nome) return;
+          const numVal = row[0]; // Coluna A (Número de chamada)
+          const nomeVal = row[1]; // Coluna B (Nome do aluno)
+          if (!nomeVal) return; // ignora linhas em branco
+
           const status = [];
-          for (let col = 1; col < lastCol; col++) {
+          for (let col = 2; col < lastCol; col++) {
             status.push(row[col] || "");
           }
           alunos.push({
-            num: idx + 1,
-            nome: nome,
+            num: numVal ? Number(numVal) : (idx + 1),
+            nome: String(nomeVal).trim(),
             status: status
           });
         });
@@ -2051,23 +2054,36 @@ function doPost(e) {
     let sheet = ss.getSheetByName(data.turma);
     if (!sheet) sheet = ss.insertSheet(data.turma);
 
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    let col = headers.indexOf(data.atividade) + 1;
+    // Encontra ou cria coluna da atividade (começando da coluna C / index 2)
+    const lastColumn = sheet.getLastColumn();
+    let col = 0;
+    if (lastColumn >= 3) {
+      const headers = sheet.getRange(1, 3, 1, lastColumn - 2).getValues()[0];
+      const headerIndex = headers.indexOf(data.atividade);
+      if (headerIndex !== -1) {
+        col = headerIndex + 3; // +3 porque pulamos colunas A e B
+      }
+    }
     if (col === 0) {
-      col = sheet.getLastColumn() + 1;
+      col = Math.max(lastColumn + 1, 3);
       sheet.getRange(1, col).setValue(data.atividade);
       sheet.getRange(2, col).setValue(data.data);
       sheet.getRange(3, col).setValue(data.recurso);
     }
 
-    const alunoCol = sheet.getRange('A:A').getValues();
+    // Encontra linha do aluno (Nome na Coluna B)
+    const alunoCol = sheet.getRange('B:B').getValues();
     let row = -1;
     for (let i = 3; i < alunoCol.length; i++) {
-      if (alunoCol[i][0] === data.aluno) { row = i + 1; break; }
+      if (String(alunoCol[i][0]).trim() === String(data.aluno).trim()) { 
+        row = i + 1; 
+        break; 
+      }
     }
     if (row === -1) {
       row = Math.max(sheet.getLastRow() + 1, 4);
-      sheet.getRange(row, 1).setValue(data.aluno);
+      sheet.getRange(row, 2).setValue(data.aluno); // Grava Nome na Coluna B
+      sheet.getRange(row, 1).setValue(row - 3);   // Grava Número na Coluna A
     }
 
     sheet.getRange(row, col).setValue(data.status);
