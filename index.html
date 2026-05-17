@@ -565,10 +565,27 @@ tbody tr.clickable-row { cursor:pointer; }
 
 @media (max-width:600px) {
   .form-row { grid-template-columns:1fr; }
-  .charts-grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); }
+  .charts-grid { grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:10px; }
   .aluno-detail-top { flex-direction:column; }
-  .aluno-3d-wrap { align-self:center; }
-  .stats-grid { grid-template-columns:repeat(2,1fr); }
+  .aluno-3d-wrap { align-self:center; width:140px; height:140px; }
+  .stats-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+  .stat-card { padding:14px 12px; }
+  .stat-value { font-size:24px; }
+  .stat-label { font-size:9px; }
+  table { min-width:100%; }
+  th { padding:8px 6px; font-size:9px; }
+  td { padding:8px 6px; font-size:10px; }
+  .table-header { padding:12px; }
+  .table-header h2 { font-size:13px; }
+  .form-ctrl { font-size:11px; padding:6px 8px; width:100%; }
+  .header-btns .btn { padding:6px 10px; font-size:11px; }
+  .brand-text h1 { font-size:13px; }
+  .brand-icon { width:32px; height:32px; font-size:16px; }
+  .canvas3d { width:120px; height:120px; }
+  .chart-pct-num { font-size:18px; }
+  main { padding:12px 10px calc(16px + var(--safe-bot)); }
+  .table-controls { width:100%; display:grid; grid-template-columns:1fr; gap:6px; }
+  #search-aluno { width:100% !important; }
 }
 </style>
 </head>
@@ -643,6 +660,12 @@ tbody tr.clickable-row { cursor:pointer; }
 
   <!-- POR TURMA -->
   <div id="panel-turmas" class="panel">
+    <div class="table-card" style="padding:16px; margin-bottom:20px;">
+      <label class="form-label" style="font-size:12px; margin-bottom:8px;">Escolha a Turma</label>
+      <select class="form-select" id="view-turma-dropdown" onchange="renderTurmas()">
+        <option value="">— Selecione uma turma —</option>
+      </select>
+    </div>
     <div id="turmas-content"></div>
   </div>
 
@@ -1445,7 +1468,15 @@ function selectTurmaChart(t, cid) {
 //  RENDER TURMAS
 // ═══════════════════════════════════════════════════
 function renderTurmas() {
-  const turmas = Object.keys(TURMAS_DATA);
+  const sel = document.getElementById('view-turma-dropdown');
+  const selected = sel ? sel.value : '';
+  
+  if (!selected) {
+    document.getElementById('turmas-content').innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Selecione uma turma no menu acima para visualizar os alunos e atividades.</div>';
+    return;
+  }
+  
+  const turmas = [selected];
   document.getElementById('turmas-content').innerHTML = turmas.map(t => {
     const s = calcTurmaStats(t);
     const mid = 'mini_' + t.replace(/[^a-z0-9]/gi, '_');
@@ -1712,7 +1743,7 @@ function renderAtividades() {
 // ═══════════════════════════════════════════════════
 function populateSelects() {
   const turmas = Object.keys(TURMAS_DATA);
-  ['filtro-turma','filtro-ativ-turma','f-turma'].forEach(id => {
+  ['filtro-turma','filtro-ativ-turma','f-turma','view-turma-dropdown'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const ph = sel.innerHTML;
