@@ -1220,117 +1220,49 @@ const TURMAS_DATA = {
 };
 
 // ═══════════════════════════════════════════════════
-//  THREE.JS 3D DONUT
+//  CHART.JS VERTICAL BARS
 // ═══════════════════════════════════════════════════
-const threeScenes = {};
+const chartInstances = {};
 
-function make3DDonut(containerId, fez, naofez, size = 160) {
+function makeBarChart(containerId, fez, naofez, size = 160, showLabels = true) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.innerHTML = '';
-
-  const total = fez + naofez || 1;
-  const pct = Math.round(fez / total * 100);
-
-  if (threeScenes[containerId]) {
-    const s = threeScenes[containerId];
-    s.renderer.dispose();
-    cancelAnimationFrame(s.rafId);
-    delete threeScenes[containerId];
-  }
-
-  const W = size, H = size;
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(42, W / H, 0.1, 100);
-  camera.position.set(0, 0, 4.2);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(W, H);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(0x000000, 0);
-  container.appendChild(renderer.domElement);
-
-  // Ambient + Directional light
-  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-  const dLight = new THREE.DirectionalLight(0x00d4ff, 1.2);
-  dLight.position.set(3, 5, 3);
-  scene.add(dLight);
-  const dLight2 = new THREE.DirectionalLight(0x10b981, 0.6);
-  dLight2.position.set(-3, -2, 2);
-  scene.add(dLight2);
-
-  const group = new THREE.Group();
-  scene.add(group);
-
-  function makeArc(angleStart, angleEnd, color, emissiveColor, yOffset = 0) {
-    const segments = 80;
-    const tube = 0.38;
-    const radius = 1.0;
-    const curve = new THREE.CatmullRomCurve3(
-      Array.from({ length: segments + 1 }, (_, i) => {
-        const a = angleStart + (angleEnd - angleStart) * (i / segments);
-        return new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0);
-      })
-    );
-    const geometry = new THREE.TubeGeometry(curve, segments, tube, 12, false);
-    const material = new THREE.MeshPhongMaterial({
-      color,
-      emissive: emissiveColor,
-      emissiveIntensity: 0.3,
-      shininess: 80,
-      specular: 0x444444,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.y = yOffset;
-    return mesh;
-  }
-
-  const TAU = Math.PI * 2;
-  const gap = 0.05;
-  const fazAngle = (fez / total) * TAU;
-  const naofezAngle = TAU - fazAngle;
-
-  if (fez > 0) {
-    group.add(makeArc(gap / 2, fazAngle - gap / 2, 0x10b981, 0x059669, 0.05));
-  }
-  if (naofez > 0) {
-    group.add(makeArc(fazAngle + gap / 2, TAU - gap / 2, 0xef4444, 0xb91c1c, -0.05));
-  }
-
-  // Tilt
-  group.rotation.x = 0.4;
-  group.rotation.z = -Math.PI / 2;
-
-  // Drag/auto-rotate
-  let isDragging = false, lastX = 0, velX = 0, autoRotate = true;
-  const el = renderer.domElement;
-
-  el.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; autoRotate = false; });
-  el.addEventListener('touchstart', e => { isDragging = true; lastX = e.touches[0].clientX; autoRotate = false; }, { passive: true });
-  window.addEventListener('mouseup', () => { isDragging = false; setTimeout(() => { autoRotate = true; }, 2000); });
-  window.addEventListener('touchend', () => { isDragging = false; setTimeout(() => { autoRotate = true; }, 2000); });
-  window.addEventListener('mousemove', e => {
-    if (!isDragging) return;
-    velX = e.clientX - lastX;
-    group.rotation.y += velX * 0.01;
-    lastX = e.clientX;
+  container.innerHTML = '<canvas></canvas>';
+  
+  container.style.width = '100%';
+  container.style.height = size + 'px';
+  container.style.position = 'relative';
+  
+  const canvas = container.querySelector('canvas');
+  if (chartInstances[containerId]) chartInstances[containerId].destroy();
+  
+  chartInstances[containerId] = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: ['FEZ', 'NÃO'],
+      datasets: [{
+        data: [fez, naofez],
+        backgroundColor: ['#10b981', '#ef4444'],
+        borderRadius: 4,
+        barPercentage: 0.7,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { display: false, beginAtZero: true },
+        x: {
+          display: showLabels,
+          grid: { display: false },
+          border: { display: false },
+          ticks: { color: '#5a7aab', font: { family: 'JetBrains Mono', size: 10 } }
+        }
+      },
+      animation: { duration: 800, easing: 'easeOutQuart' }
+    }
   });
-  el.addEventListener('touchmove', e => {
-    if (!isDragging) return;
-    velX = e.touches[0].clientX - lastX;
-    group.rotation.y += velX * 0.01;
-    lastX = e.touches[0].clientX;
-  }, { passive: true });
-
-  let rafId;
-  function animate() {
-    rafId = requestAnimationFrame(animate);
-    if (autoRotate) group.rotation.y += 0.008;
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  threeScenes[containerId] = { renderer, rafId };
 }
 
 // ═══════════════════════════════════════════════════
@@ -1428,14 +1360,13 @@ function renderDashboard() {
     const cid = 'c3d_' + t.replace(/[^a-z0-9]/gi, '_');
     return `
       <div class="chart-card" onclick="selectTurmaChart('${t}', '${cid}')" id="cc_${cid}">
-        <div class="chart-card-title">${t}</div>
+        <div class="chart-card-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>${t}</span>
+          <span style="color:${pctColor(s.pct)};font-size:16px;">${s.pct}%</span>
+        </div>
         <div class="chart-card-sub">${s.alunos} alunos · ${TURMAS_DATA[t].atividades.length} ativs</div>
-        <div style="position:relative;display:inline-block;">
-          <div class="canvas3d" id="${cid}"></div>
-          <div class="chart-pct-overlay">
-            <div class="chart-pct-num">${s.pct}%</div>
-            <div class="chart-pct-lbl">REALIZARAM</div>
-          </div>
+        <div style="position:relative; width:100%; padding:10px 0;">
+          <div id="${cid}"></div>
         </div>
         <div class="chart-legend">
           <span><span class="legend-dot" style="background:var(--fez)"></span>${s.fez} FEZ</span>
@@ -1448,7 +1379,7 @@ function renderDashboard() {
     turmas.forEach(t => {
       const s = calcTurmaStats(t);
       const cid = 'c3d_' + t.replace(/[^a-z0-9]/gi, '_');
-      make3DDonut(cid, s.fez, s.naofez, 160);
+      makeBarChart(cid, s.fez, s.naofez, 130);
     });
   }, 80);
 
@@ -1562,9 +1493,9 @@ function renderTurmas() {
             <span style="font-family:var(--mono);font-size:15px;font-weight:700">${calcNota(s.pct).toFixed(1)}</span>
           </div>
         </div>
-        <div style="position:relative">
-          <div class="turma-mini-chart" id="${mid}"></div>
-          <div class="pct-mini">${s.pct}%</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="pct-mini" style="position:static;transform:none;font-size:18px;">${s.pct}%</div>
+          <div class="turma-mini-chart" id="${mid}" style="width:80px;"></div>
         </div>
       </div>
       <div class="table-card">
@@ -1608,7 +1539,7 @@ function renderTurmas() {
     turmas.forEach(t => {
       const s = calcTurmaStats(t);
       const mid = 'mini_' + t.replace(/[^a-z0-9]/gi, '_');
-      make3DDonut(mid, s.fez, s.naofez, 70);
+      makeBarChart(mid, s.fez, s.naofez, 50, false);
     });
   }, 80);
 }
