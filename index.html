@@ -1441,30 +1441,30 @@ function openTurmaModal(t) {
       <table>
         <thead><tr>
           <th>Nº</th><th>Nome</th>
-          ${TURMAS_DATA[t].atividades.map((a,i)=>\`<th style="max-width:60px;font-size:9px" title="\${a.nome} · \${a.data}">\${i+1}<br><span style="color:var(--border2)">\${a.recurso.split(' ')[0]}</span></th>\`).join('')}
+          ${TURMAS_DATA[t].atividades.map((a,i)=>`<th style="max-width:60px;font-size:9px" title="${a.nome} · ${a.data}">${i+1}<br><span style="color:var(--border2)">${a.recurso.split(' ')[0]}</span></th>`).join('')}
           <th>Taxa</th><th>Nota</th>
         </tr></thead>
         <tbody>
           ${TURMAS_DATA[t].alunos.map(a => {
             const as = calcAlunoStats(a);
-            return \`<tr class="clickable-row" onclick="showAlunoDetail('\${t}','\${a.nome.replace(/'/g,"\\\\'")}')">
-              <td style="color:var(--muted)">\${a.num}</td>
-              <td style="font-weight:500;font-size:12px">\${a.nome}</td>
-              \${a.status.map((st,i) => \`<td style="text-align:center">
-                \${st==='FEZ'?'<span style="color:var(--fez);font-size:15px">✓</span>':st==='NÃO FEZ'?'<span style="color:var(--naofez);font-size:13px">✗</span>':'<span style="color:var(--border)">–</span>'}
-              </td>\`).join('')}
+            return `<tr class="clickable-row" onclick="showAlunoDetail('${t}','${a.nome.replace(/'/g,"\\'")}')">
+              <td style="color:var(--muted)">${a.num}</td>
+              <td style="font-weight:500;font-size:12px">${a.nome}</td>
+              ${a.status.map((st,i) => `<td style="text-align:center">
+                ${st==='FEZ'?'<span style="color:var(--fez);font-size:15px">✓</span>':st==='NÃO FEZ'?'<span style="color:var(--naofez);font-size:13px">✗</span>':'<span style="color:var(--border)">–</span>'}
+              </td>`).join('')}
               <td>
                 <div class="pbar-wrap">
-                  <div class="pbar" style="min-width:40px"><div class="pbar-fill" style="width:\${as.pct}%;background:\${pctColor(as.pct)}"></div></div>
-                  <span style="font-size:11px;color:\${pctColor(as.pct)};font-weight:700;font-family:var(--mono)">\${as.pct}%</span>
+                  <div class="pbar" style="min-width:40px"><div class="pbar-fill" style="width:${as.pct}%;background:${pctColor(as.pct)}"></div></div>
+                  <span style="font-size:11px;color:${pctColor(as.pct)};font-weight:700;font-family:var(--mono)">${as.pct}%</span>
                 </div>
               </td>
               <td>
-                <div class="nota-pill" style="background:\${notaColor(as.nota)}22;border:1px solid \${notaColor(as.nota)}44;color:\${notaColor(as.nota)}">
-                  <span style="font-family:var(--mono);font-size:13px;font-weight:700">\${as.nota.toFixed(1)}</span>
+                <div class="nota-pill" style="background:${notaColor(as.nota)}22;border:1px solid ${notaColor(as.nota)}44;color:${notaColor(as.nota)}">
+                  <span style="font-family:var(--mono);font-size:13px;font-weight:700">${as.nota.toFixed(1)}</span>
                 </div>
               </td>
-            </tr>\`;
+            </tr>`;
           }).join('')}
         </tbody>
       </table>
