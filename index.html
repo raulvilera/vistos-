@@ -1457,7 +1457,7 @@ function openTurmaModal(t) {
         <tbody>
           ${TURMAS_DATA[t].alunos.map(a => {
             const as = calcAlunoStats(a);
-            return `<tr class="clickable-row" onclick="showAlunoDetail('${t}','${a.nome.replace(/'/g,"\\'")}')">
+            return `<tr class="clickable-row" onclick="showAlunoDetail('${t}','${String(a.nome || '').replace(/'/g,"\\'")}')">
               <td style="color:var(--muted)">${a.num}</td>
               <td style="font-weight:500;font-size:12px">${a.nome}</td>
               ${a.status.map((st,i) => `<td style="text-align:center">
@@ -1528,7 +1528,7 @@ function renderTurmas() {
             <tbody>
               ${TURMAS_DATA[t].alunos.map(a => {
                 const as = calcAlunoStats(a);
-                return `<tr class="clickable-row" onclick="showAlunoDetail('${t}','${a.nome.replace(/'/g,"\\'")}')">
+                return `<tr class="clickable-row" onclick="showAlunoDetail('${t}','${String(a.nome || '').replace(/'/g,"\\'")}')">
                   <td style="color:var(--muted)">${a.num}</td>
                   <td style="font-weight:500;font-size:12px">${a.nome}</td>
                   ${a.status.map((s,i) => `<td style="text-align:center">
@@ -1636,12 +1636,12 @@ function renderAlunos() {
   Object.keys(TURMAS_DATA).forEach(t => {
     if (filtro && t !== filtro) return;
     TURMAS_DATA[t].alunos.forEach(a => {
-      if (search && !a.nome.toLowerCase().includes(search)) return;
+      if (search && !String(a.nome || '').toLowerCase().includes(search)) return;
       const as = calcAlunoStats(a);
       const rowId = 'arow_' + t.replace(/[^a-z0-9]/gi,'_') + '_' + a.num;
       const detId = 'adet_' + t.replace(/[^a-z0-9]/gi,'_') + '_' + a.num;
       rows += `
-        <tr class="clickable-row" onclick="showAlunoDetail('${t}','${a.nome.replace(/'/g,"\\'")}')">
+        <tr class="clickable-row" onclick="showAlunoDetail('${t}','${String(a.nome || '').replace(/'/g,"\\'")}')">
           <td style="color:var(--muted)">${a.num}</td>
           <td style="font-weight:600">${a.nome}</td>
           <td><span class="badge badge-turma">${t}</span></td>
