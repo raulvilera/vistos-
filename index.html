@@ -1432,7 +1432,7 @@ function openTurmaModal(t) {
       <table>
         <thead><tr>
           <th>Nº</th><th>Nome</th>
-          ${TURMAS_DATA[t].atividades.map((a,i)=>`<th style="max-width:60px;font-size:9px" title="${a.nome} · ${a.data}">${i+1}<br><span style="color:var(--border2)">${a.recurso.split(' ')[0]}</span></th>`).join('')}
+          ${(TURMAS_DATA[t].atividades || []).map((a,i)=>`<th style="max-width:60px;font-size:9px" title="${a.nome} · ${a.data}">${i+1}<br><span style="color:var(--border2)">${((a.recurso || '').split(' ')[0] || '')}</span></th>`).join('')}
           <th>Taxa</th><th>Nota</th>
         </tr></thead>
         <tbody>
@@ -1503,7 +1503,7 @@ function renderTurmas() {
           <table>
             <thead><tr>
               <th>Nº</th><th>Nome</th>
-              ${TURMAS_DATA[t].atividades.map((a,i)=>`<th style="max-width:60px;font-size:9px" title="${a.nome} · ${a.data}">${i+1}<br><span style="color:var(--border2)">${a.recurso.split(' ')[0]}</span></th>`).join('')}
+              ${(TURMAS_DATA[t].atividades || []).map((a,i)=>`<th style="max-width:60px;font-size:9px" title="${a.nome} · ${a.data}">${i+1}<br><span style="color:var(--border2)">${((a.recurso || '').split(' ')[0] || '')}</span></th>`).join('')}
               <th>Taxa</th><th>Nota</th>
             </tr></thead>
             <tbody>
