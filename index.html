@@ -804,7 +804,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw9EQehqf6aut8s
 // ═══════════════════════════════════════════════════
 //  DADOS
 // ═══════════════════════════════════════════════════
-const TURMAS_DATA = {
+let TURMAS_DATA = {
   "6ºAno A (Lydia)": {
     atividades:[
       {nome:"Aula 1 - Camadas da Terra",data:"28/04/2026",recurso:"Caderno"},
@@ -1898,6 +1898,55 @@ if ('serviceWorker' in navigator) {
 }
 
 // ═══════════════════════════════════════════════════
+//  SYNC DATA FROM GOOGLE SHEETS (DYNAMIC LOAD)
+// ═══════════════════════════════════════════════════
+async function loadDataFromSheets() {
+  if (!APPS_SCRIPT_URL) return;
+  
+  // Cria overlay de carregamento bonito e moderno (Glassmorphism)
+  const loading = document.createElement('div');
+  loading.id = 'loading-sheets-overlay';
+  loading.style = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(10, 15, 30, 0.7); color: #fff; z-index: 100000;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: var(--sans); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: opacity 0.3s ease;
+  `;
+  loading.innerHTML = `
+    <div style="border: 4px solid rgba(255,255,255,0.1); border-left-color: var(--fez); border-radius: 50%; width: 45px; height: 45px; animation: spin-loading 1s linear infinite; margin-bottom: 15px;"></div>
+    <div style="font-weight:600; font-size: 15px; letter-spacing: 0.5px; text-shadow: 0 2px 10px rgba(0,0,0,0.5)">Sincronizando com a Planilha...</div>
+    <div style="font-size: 11px; opacity: 0.6; margin-top: 5px;">Carregando alunos e abas reais em tempo real</div>
+    <style>
+      @keyframes spin-loading { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+  `;
+  document.body.appendChild(loading);
+
+  try {
+    const resp = await fetch(APPS_SCRIPT_URL);
+    const res = await resp.json();
+    if (res.success && res.data && Object.keys(res.data).length > 0) {
+      TURMAS_DATA = res.data;
+      populateSelects();
+      renderDashboard();
+      renderAlunos();
+      renderAtividades();
+      toast('📊 Dados sincronizados da Planilha!', 'success');
+    } else {
+      console.warn("API retornou sem sucesso ou sem dados:", res);
+      toast('Aviso: Planilha vazia ou sem dados.', 'atencao');
+    }
+  } catch (e) {
+    console.error("Erro ao sincronizar do Sheets:", e);
+    toast('📱 Usando dados locais offline', 'atencao');
+  } finally {
+    loading.style.opacity = '0';
+    setTimeout(() => loading.remove(), 300);
+  }
+}
+
+// ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
 window.addEventListener('load', () => {
@@ -1906,18 +1955,75 @@ window.addEventListener('load', () => {
   renderAlunos();
   renderAtividades();
   checkOnline();
+  loadDataFromSheets();
 });
 </script>
 
 <!-- ══ GOOGLE APPS SCRIPT INTEGRATION GUIDE ══
-Para ativar o envio automático para o Google Sheets:
+Para ativar a leitura e escrita automática do Google Sheets:
 
-1. Abra sua planilha:
-   https://docs.google.com/spreadsheets/d/1CzqPjjGlniT16bAGYI5T9KGfgUvKVMRsgdyHX2KC6gA/edit
-
+1. Abra sua planilha
 2. Menu: Extensões → Apps Script
+3. Cole este código completo (substituindo todo o conteúdo existente):
 
-3. Cole este código:
+function doGet(e) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheets = ss.getSheets();
+    const data = {};
+
+    sheets.forEach(sheet => {
+      const name = sheet.getName();
+      if (name.startsWith("__") || name === "Pendente" || name === "Log") return;
+
+      const lastRow = sheet.getLastRow();
+      const lastCol = sheet.getLastColumn();
+      const activities = [];
+      const alunos = [];
+
+      if (lastCol >= 2) {
+        const headerData = sheet.getRange(1, 2, 3, lastCol - 1).getValues();
+        for (let col = 0; col < lastCol - 1; col++) {
+          activities.push({
+            nome: headerData[0][col] || ("Atividade " + (col + 1)),
+            data: headerData[1][col] ? (headerData[1][col] instanceof Date ? Utilities.formatDate(headerData[1][col], Session.getScriptTimeZone(), "dd/MM/yyyy") : String(headerData[1][col])) : "",
+            recurso: headerData[2][col] || ""
+          });
+        }
+      }
+
+      if (lastRow >= 4) {
+        const rows = sheet.getRange(4, 1, lastRow - 3, lastCol).getValues();
+        rows.forEach((row, idx) => {
+          const nome = row[0];
+          if (!nome) return;
+          const status = [];
+          for (let col = 1; col < lastCol; col++) {
+            status.push(row[col] || "");
+          }
+          alunos.push({
+            num: idx + 1,
+            nome: nome,
+            status: status
+          });
+        });
+      }
+
+      data[name] = {
+        atividades: activities,
+        alunos: alunos
+      };
+    });
+
+    return ContentService.createTextOutput(
+      JSON.stringify({ success: true, data: data })
+    ).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({ success: false, error: err.message })
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
+}
 
 function doPost(e) {
   try {
@@ -1926,7 +2032,6 @@ function doPost(e) {
     let sheet = ss.getSheetByName(data.turma);
     if (!sheet) sheet = ss.insertSheet(data.turma);
 
-    // Encontra ou cria coluna da atividade
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     let col = headers.indexOf(data.atividade) + 1;
     if (col === 0) {
@@ -1936,7 +2041,6 @@ function doPost(e) {
       sheet.getRange(3, col).setValue(data.recurso);
     }
 
-    // Encontra linha do aluno
     const alunoCol = sheet.getRange('A:A').getValues();
     let row = -1;
     for (let i = 3; i < alunoCol.length; i++) {
@@ -1959,10 +2063,11 @@ function doPost(e) {
   }
 }
 
-4. Implantar → Novo implantamento → Aplicativo da Web
+4. Clique em "Implantar" → "Novo implante" (New deployment)
+   - Tipo de implante: Aplicativo da Web
    - Executar como: Eu (sua conta)
    - Quem tem acesso: Qualquer pessoa
-5. Copie a URL e cole em APPS_SCRIPT_URL no início do script
+5. Copie a nova URL do Web App e substitua na variável APPS_SCRIPT_URL no topo do código do index.html
 ═══════════════════════════════════════════════════ -->
 </body>
 </html>
