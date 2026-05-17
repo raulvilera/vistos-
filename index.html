@@ -793,6 +793,25 @@ tbody tr.clickable-row { cursor:pointer; }
 <div id="toast"></div>
 
 <script>
+// 🚨 DEPURADOR DE ERROS EM TEMPO REAL (CAPTURA ERROS NO CELULAR)
+window.onerror = function(message, source, lineno, colno, error) {
+  const errDiv = document.createElement('div');
+  errDiv.style = `
+    position: fixed; bottom: 20px; left: 20px; right: 20px;
+    background: rgba(220, 50, 50, 0.95); color: #fff; padding: 15px;
+    border-radius: 8px; z-index: 1000000; font-family: monospace;
+    font-size: 12px; border: 1px solid #ff5555; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  `;
+  errDiv.innerHTML = `
+    <strong>⚠️ Erro de Sistema (Celular):</strong><br>
+    ${message}<br>
+    <small>Ficheiro: ${source.split('/').pop()} | Linha: ${lineno}</small><br>
+    <button onclick="this.parentElement.remove()" style="margin-top:10px; background:#fff; color:#d32f2f; border:none; padding:4px 10px; border-radius:4px; font-weight:bold; cursor:pointer">Fechar</button>
+  `;
+  document.body.appendChild(errDiv);
+  return false;
+};
+
 // ═══════════════════════════════════════════════════
 //  CONFIGURAÇÃO GOOGLE SHEETS
 //  ⚠️ Substitua APPS_SCRIPT_URL pela URL do seu Web App

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atividades-prv-v6';
+const CACHE_NAME = 'atividades-prv-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -27,8 +27,22 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
-  );
+  // Estratégia Network-First para páginas HTML principais para evitar cache travado
+  if (e.request.mode === 'navigate' || e.request.url.includes('index.html')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(e.request))
+    );
+  } else {
+    // Cache-First para outros recursos estáticos
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => cached))
+    );
+  }
 });
 
