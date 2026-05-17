@@ -1946,7 +1946,47 @@ async function loadDataFromSheets() {
     const resp = await fetch(APPS_SCRIPT_URL);
     const res = await resp.json();
     if (res.success && res.data && Object.keys(res.data).length > 0) {
-      TURMAS_DATA = res.data;
+      // --- PARSER AUTO-CORRETOR DE FORMATO (Mapeamento Resiliente) ---
+      const cleanData = {};
+      Object.keys(res.data).forEach(turmaName => {
+        const turma = res.data[turmaName];
+        let activities = turma.atividades || [];
+        let alunos = turma.alunos || [];
+
+        // Verifica se a primeira coluna de atividade é na verdade o Cabeçalho de Nomes
+        const hasNameColumn = activities.length > 0 && 
+          (activities[0].nome.toLowerCase().includes('nome') || 
+           activities[0].nome.trim() === '1');
+
+        if (hasNameColumn) {
+          // Remove a coluna fantasma de "Nome" das atividades
+          activities = activities.slice(1);
+          
+          // Corrige e normaliza a estrutura dos alunos
+          alunos = alunos.map(a => {
+            const rawName = a.status && a.status[0] ? String(a.status[0]).trim() : '';
+            const correctName = rawName && rawName !== 'FEZ' && rawName !== 'NÃO FEZ' ? rawName : String(a.nome || '');
+            const correctNum = !isNaN(a.nome) && a.nome !== '' ? Number(a.nome) : a.num;
+            
+            // Remove o nome do array de visto de atividades
+            const correctStatus = a.status ? a.status.slice(1) : [];
+            
+            return {
+              num: correctNum,
+              nome: correctName,
+              status: correctStatus
+            };
+          });
+        }
+        
+        cleanData[turmaName] = {
+          atividades: activities,
+          alunos: alunos
+        };
+      });
+
+      TURMAS_DATA = cleanData;
+      // -----------------------------------------------------------------
       populateSelects();
       renderDashboard();
       renderAlunos();
