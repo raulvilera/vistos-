@@ -1778,7 +1778,7 @@ async function submitActivity() {
       const payload = { turma, aluno, data: data.split('-').reverse().join('/'), recurso, atividade, status };
       const resp = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
       const result = await resp.json();
@@ -1824,7 +1824,7 @@ async function syncToSheets() {
     try {
       const resp = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(entry)
       });
       const r = await resp.json();
