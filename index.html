@@ -2025,6 +2025,17 @@ Para ativar a leitura e escrita automática do Google Sheets:
 2. Menu: Extensões → Apps Script
 3. Cole este código completo (substituindo todo o conteúdo existente):
 
+// ════════════════════════════════════════════════════════════════
+//  ESTRUTURA DA PLANILHA:
+//  Linha 1 → Nome da atividade
+//  Linha 2 → Data
+//  Linha 3 → Recurso (ex: "Aula 1 - Camadas da Terra")
+//  Linha 4 → Tipo do material (ex: Caderno, Apostila, Livro do Estudante)
+//  Linha 5+ → Alunos  (col A = Nº, col B = Nome, col C+ = status)
+// ════════════════════════════════════════════════════════════════
+
+var HEADER_ROWS = 4;  // altere aqui se a planilha mudar
+
 function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -2040,41 +2051,47 @@ function doGet(e) {
       const activities = [];
       const alunos = [];
 
-      // Coluna A = Número, Coluna B = Nome. As atividades começam na Coluna C (3)
+      // Lê as 4 linhas de cabeçalho (colunas C em diante)
       if (lastCol >= 3) {
-        const headerData = sheet.getRange(1, 3, 3, lastCol - 2).getValues();
+        const headerData = sheet.getRange(1, 3, HEADER_ROWS, lastCol - 2).getValues();
         for (let col = 0; col < lastCol - 2; col++) {
+          const nomeAtiv = String(headerData[0][col] || "").trim();
+          if (!nomeAtiv) continue; // ignora colunas sem nome de atividade
+          const rawData = headerData[1][col];
           activities.push({
-            nome: headerData[0][col] || ("Atividade " + (col + 1)),
-            data: headerData[1][col] ? (headerData[1][col] instanceof Date ? Utilities.formatDate(headerData[1][col], Session.getScriptTimeZone(), "dd/MM/yyyy") : String(headerData[1][col])) : "",
-            recurso: headerData[2][col] || ""
+            nome: nomeAtiv,
+            data: rawData
+              ? (rawData instanceof Date
+                  ? Utilities.formatDate(rawData, Session.getScriptTimeZone(), "dd/MM/yyyy")
+                  : String(rawData))
+              : "",
+            recurso: String(headerData[2][col] || "").trim(),
+            tipo:    String(headerData[3][col] || "").trim()
           });
         }
       }
 
-      if (lastRow >= 4) {
-        const rows = sheet.getRange(4, 1, lastRow - 3, lastCol).getValues();
+      // Alunos começam na linha HEADER_ROWS + 1
+      if (lastRow > HEADER_ROWS) {
+        const rows = sheet.getRange(HEADER_ROWS + 1, 1, lastRow - HEADER_ROWS, lastCol).getValues();
         rows.forEach((row, idx) => {
-          const numVal = row[0]; // Coluna A (Número de chamada)
-          const nomeVal = row[1]; // Coluna B (Nome do aluno)
-          if (!nomeVal) return; // ignora linhas em branco
+          const numVal  = row[0]; // col A
+          const nomeVal = row[1]; // col B
+          if (!nomeVal || String(nomeVal).trim() === "") return; // ignora linhas em branco
 
           const status = [];
           for (let col = 2; col < lastCol; col++) {
-            status.push(row[col] || "");
+            status.push(row[col] !== undefined && row[col] !== null ? String(row[col]) : "");
           }
           alunos.push({
-            num: numVal ? Number(numVal) : (idx + 1),
-            nome: String(nomeVal).trim(),
+            num:    numVal ? Number(numVal) : (idx + 1),
+            nome:   String(nomeVal).trim(),
             status: status
           });
         });
       }
 
-      data[name] = {
-        atividades: activities,
-        alunos: alunos
-      };
+      data[name] = { atividades: activities, alunos: alunos };
     });
 
     return ContentService.createTextOutput(
@@ -2094,14 +2111,14 @@ function doPost(e) {
     let sheet = ss.getSheetByName(data.turma);
     if (!sheet) sheet = ss.insertSheet(data.turma);
 
-    // Encontra ou cria coluna da atividade (começando da coluna C / index 2)
+    // ── Encontra ou cria coluna da atividade (col C em diante) ──
     const lastColumn = sheet.getLastColumn();
     let col = 0;
     if (lastColumn >= 3) {
       const headers = sheet.getRange(1, 3, 1, lastColumn - 2).getValues()[0];
-      const headerIndex = headers.indexOf(data.atividade);
+      const headerIndex = headers.findIndex(h => String(h).trim() === String(data.atividade).trim());
       if (headerIndex !== -1) {
-        col = headerIndex + 3; // +3 porque pulamos colunas A e B
+        col = headerIndex + 3; // offset: cols A e B + base 1
       }
     }
     if (col === 0) {
@@ -2109,21 +2126,23 @@ function doPost(e) {
       sheet.getRange(1, col).setValue(data.atividade);
       sheet.getRange(2, col).setValue(data.data);
       sheet.getRange(3, col).setValue(data.recurso);
+      sheet.getRange(4, col).setValue(data.tipo || "");
     }
 
-    // Encontra linha do aluno (Nome na Coluna B)
-    const alunoCol = sheet.getRange('B:B').getValues();
+    // ── Encontra linha do aluno (col B), busca a partir da linha HEADER_ROWS+1 ──
+    const alunoCol = sheet.getRange("B:B").getValues();
     let row = -1;
-    for (let i = 3; i < alunoCol.length; i++) {
-      if (String(alunoCol[i][0]).trim() === String(data.aluno).trim()) { 
-        row = i + 1; 
-        break; 
+    for (let i = HEADER_ROWS; i < alunoCol.length; i++) { // i é 0-based → linha real = i+1
+      if (String(alunoCol[i][0]).trim() === String(data.aluno).trim()) {
+        row = i + 1; // converte para linha real (1-based)
+        break;
       }
     }
     if (row === -1) {
-      row = Math.max(sheet.getLastRow() + 1, 4);
-      sheet.getRange(row, 2).setValue(data.aluno); // Grava Nome na Coluna B
-      sheet.getRange(row, 1).setValue(row - 3);   // Grava Número na Coluna A
+      // Aluno não encontrado → adiciona no final, respeitando o cabeçalho de 4 linhas
+      row = Math.max(sheet.getLastRow() + 1, HEADER_ROWS + 1);
+      sheet.getRange(row, 2).setValue(data.aluno);            // col B = Nome
+      sheet.getRange(row, 1).setValue(row - HEADER_ROWS);     // col A = Nº sequencial
     }
 
     sheet.getRange(row, col).setValue(data.status);
